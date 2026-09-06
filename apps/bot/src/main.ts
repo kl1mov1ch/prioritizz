@@ -1,8 +1,11 @@
 import { Telegraf } from 'telegraf';
 import { Worker } from 'bullmq';
 import IORedis from 'ioredis';
-import { loadEnv } from '@prioritizz/config';
+import { loadDotenv, loadEnv } from '@prioritizz/config';
 import { QUEUES } from '@prioritizz/constants';
+
+// Standalone process: no Nest ConfigModule, so pull the monorepo .env in first.
+loadDotenv(__dirname);
 
 /**
  * Standalone bot process. Responsibilities:
@@ -16,15 +19,43 @@ async function main() {
   const bot = new Telegraf(env.TELEGRAM_BOT_TOKEN);
   const connection = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
 
-  bot.start((ctx) =>
-    ctx.reply('Добро пожаловать в Prioritizz. Откройте Mini App, чтобы продолжить.', {
+  // Telegram only accepts https for web_app buttons, so a localhost dev URL
+  // falls back to a plain message instead of a broken button.
+  const canOpenMiniApp = env.MINI_APP_URL.startsWith('https://');
+
+  bot.start((ctx) => {
+    if (!canOpenMiniApp) {
+      return ctx.reply(
+        `Prioritizz\n\nMini App пока доступен только локально (${env.MINI_APP_URL}).\n` +
+          'Telegram открывает Mini App только по https — поднимите туннель и укажите его в MINI_APP_URL.\n\n' +
+          'Команда /id покажет ваш числовой Telegram ID.',
+      );
+    }
+    return ctx.reply('Добро пожаловать в Prioritizz. Откройте Mini App, чтобы продолжить.', {
       reply_markup: {
         inline_keyboard: [[{ text: 'Открыть Prioritizz', web_app: { url: env.MINI_APP_URL } }]],
       },
-    }),
+    });
+  });
+
+  /** Prints the caller's numeric id — used to pin ADMIN_TELEGRAM_ALLOWLIST. */
+  bot.command('id', (ctx) =>
+    ctx.reply(
+      `Ваш Telegram ID: ${ctx.from.id}\n` +
+        `Username: ${ctx.from.username ? '@' + ctx.from.username : '—'}\n\n` +
+        'Впишите ID в ADMIN_TELEGRAM_ALLOWLIST — это надёжнее username.',
+    ),
   );
 
-  bot.command('help', (ctx) => ctx.reply('Поддержка: откройте раздел «Поддержка» в Mini App.'));
+  bot.command('help', (ctx) =>
+    ctx.reply('/start — открыть Mini App\n/id — показать ваш Telegram ID\n/help — эта справка'),
+  );
+
+  await bot.telegram.setMyCommands([
+    { command: 'start', description: 'Открыть Prioritizz' },
+    { command: 'id', description: 'Показать мой Telegram ID' },
+    { command: 'help', description: 'Справка' },
+  ]);
 
   new Worker(
     QUEUES.NOTIFICATIONS,
@@ -45,12 +76,14 @@ async function main() {
     { connection, prefix: env.BULLMQ_PREFIX },
   );
 
-  await bot.launch();
-  // eslint-disable-next-line no-console
-  console.log('Bot started');
-
   process.once('SIGINT', () => bot.stop('SIGINT'));
   process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
+  // launch() only resolves once polling stops, so announce readiness first.
+  const me = await bot.telegram.getMe();
+  // eslint-disable-next-line no-console
+  console.log(`Bot @${me.username} polling (mini app: ${env.MINI_APP_URL})`);
+  await bot.launch();
 }
 
 void main();

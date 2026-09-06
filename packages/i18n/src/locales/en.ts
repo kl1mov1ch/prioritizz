@@ -37,6 +37,9 @@ export const en = {
     failedDesc: 'Open the app from Telegram and try again.',
     adminTitle: 'Prioritizz Admin',
     adminSubtitle: 'Sign in with your allowlisted Telegram operator account.',
+    orDivider: 'or',
+    widgetUnavailable:
+      'Telegram widget unavailable — register the panel domain with BotFather (/setdomain).',
     initDataLabel: 'Telegram initData',
     initDataHint: 'Opened from Telegram this fills in automatically. Paste it by hand for local dev.',
     initDataPlaceholder: 'query_id=…&user=…&auth_date=…&hash=…',

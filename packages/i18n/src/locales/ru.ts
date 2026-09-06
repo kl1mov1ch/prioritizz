@@ -38,6 +38,9 @@ export const ru: Messages = {
     failedDesc: 'Откройте приложение из Telegram и попробуйте снова.',
     adminTitle: 'Prioritizz Admin',
     adminSubtitle: 'Войдите под аккаунтом оператора из allowlist.',
+    orDivider: 'или',
+    widgetUnavailable:
+      'Виджет Telegram недоступен — зарегистрируйте домен панели в BotFather (/setdomain).',
     initDataLabel: 'Telegram initData',
     initDataHint:
       'При открытии из Telegram подставляется автоматически. Для локальной разработки вставьте вручную.',

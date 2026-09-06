@@ -56,6 +56,10 @@ export function createApiClient(options: HttpClientOptions) {
         http.post<AuthResponse>('auth/refresh', { refreshToken }, { skipAuth: true }),
       adminLogin: (input: AdminLoginInput) =>
         http.post<AuthResponse>('auth/admin/login', input, { skipAuth: true }),
+      adminTelegramWidget: (payload: Record<string, unknown>) =>
+        http.post<AuthResponse>('auth/admin/telegram-widget', payload, { skipAuth: true }),
+      telegramWidget: (payload: Record<string, unknown>) =>
+        http.post<AuthResponse>('auth/telegram/widget', payload, { skipAuth: true }),
       logout: () => http.post<void>('auth/logout'),
       sessions: () => http.get<{ items: unknown[] }>('auth/sessions'),
     },

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { loadEnv } from '@prioritizz/config';
 import { ERROR_CODES } from '@prioritizz/constants';
 import type { ParsedInitData, TelegramUser } from '@prioritizz/types';
@@ -73,6 +73,66 @@ export class TelegramInitDataService {
       query_id: params.get('query_id') ?? undefined,
       start_param: params.get('start_param') ?? undefined,
       hash,
+    };
+  }
+
+  /**
+   * Verifies a Telegram **Login Widget** callback (browser sign-in), which uses
+   * a different derivation than Mini App initData:
+   *
+   *   secret_key     = SHA256(bot_token)               // raw digest, not an HMAC
+   *   data_check_str = newline-joined sorted "key=value" pairs, minus `hash`
+   *   expected       = HEX(HMAC_SHA256(key=secret_key, data=data_check_str))
+   *
+   * https://core.telegram.org/widgets/login#checking-authorization
+   */
+  verifyLoginWidget(payload: Record<string, unknown>): TelegramUser & { auth_date: number } {
+    const { hash, ...rest } = payload as Record<string, string | number | undefined> & {
+      hash?: string;
+    };
+    if (!hash) {
+      throw new AppException(ERROR_CODES.AUTH_INITDATA_INVALID, 'login payload is missing hash');
+    }
+
+    const dataCheckString = Object.entries(rest)
+      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => `${k}=${v}`)
+      .sort()
+      .join('\n');
+
+    const secretKey = createHash('sha256').update(this.env.TELEGRAM_BOT_TOKEN).digest();
+    const expected = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+    const a = Buffer.from(expected, 'hex');
+    const b = Buffer.from(String(hash), 'hex');
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
+      throw new AppException(ERROR_CODES.AUTH_INITDATA_INVALID, 'login signature mismatch');
+    }
+
+    const authDate = Number(rest.auth_date);
+    if (!Number.isFinite(authDate)) {
+      throw new AppException(ERROR_CODES.AUTH_INITDATA_INVALID, 'login payload has no auth_date');
+    }
+    const ageSec = Math.floor(Date.now() / 1000) - authDate;
+    if (ageSec > this.env.INITDATA_MAX_AGE_SEC) {
+      throw new AppException(
+        ERROR_CODES.AUTH_INITDATA_EXPIRED,
+        `login payload is too old (${ageSec}s)`,
+      );
+    }
+
+    const id = Number(rest.id);
+    if (!Number.isFinite(id)) {
+      throw new AppException(ERROR_CODES.AUTH_INITDATA_INVALID, 'login payload has no user id');
+    }
+
+    return {
+      id,
+      first_name: String(rest.first_name ?? ''),
+      last_name: rest.last_name ? String(rest.last_name) : undefined,
+      username: rest.username ? String(rest.username) : undefined,
+      photo_url: rest.photo_url ? String(rest.photo_url) : undefined,
+      auth_date: authDate,
     };
   }
 }

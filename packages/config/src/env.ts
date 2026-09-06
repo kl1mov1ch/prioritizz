@@ -1,4 +1,29 @@
+import { existsSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { config as loadDotenvFile } from 'dotenv';
 import { z } from 'zod';
+
+/**
+ * Hydrate process.env from the nearest .env walking up from `startDir`.
+ * Existing variables always win, so real environment config (Docker, CI,
+ * the shell) is never overridden by a checked-out file.
+ *
+ * Nest apps get this from ConfigModule; standalone processes (bot, scripts,
+ * workers) call it explicitly before loadEnv().
+ */
+export function loadDotenv(startDir: string = process.cwd()): string | null {
+  let dir = resolve(startDir);
+  for (;;) {
+    const candidate = join(dir, '.env');
+    if (existsSync(candidate)) {
+      loadDotenvFile({ path: candidate, override: false, quiet: true });
+      return candidate;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
 
 /**
  * Single source of truth for backend runtime configuration.
@@ -38,6 +63,10 @@ export const serverEnvSchema = z.object({
   TELEGRAM_BOT_USERNAME: z.string().default('PrioritizzBot'),
   TELEGRAM_WEBHOOK_SECRET: z.string().min(8).default('dev_webhook_secret_change_me'),
   MINI_APP_URL: z.string().url().default('http://localhost:5173'),
+  ADMIN_PANEL_URL: z.string().url().default('http://localhost:5174'),
+  /** BotFather → Login Widget. Client id equals the bot id; secret powers OIDC. */
+  TELEGRAM_LOGIN_CLIENT_ID: z.string().optional(),
+  TELEGRAM_LOGIN_SECRET: z.string().optional(),
   ADMIN_TELEGRAM_ALLOWLIST: z.string().transform(csv).pipe(z.array(z.string())).default(''),
 
   PLATFORM_CURRENCY: z.enum(['XTR', 'USD', 'EUR']).default('XTR'),

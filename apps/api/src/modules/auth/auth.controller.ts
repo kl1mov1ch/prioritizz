@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { AuthService } from './auth.service';
-import { AdminLoginDto, RefreshDto, TelegramLoginDto } from './dto';
+import { AdminLoginDto, RefreshDto, TelegramLoginDto, TelegramWidgetLoginDto } from './dto';
 import { Public } from '../../common/decorators/roles.decorator';
 import { CurrentUser, type AuthContext } from '../../common/decorators/current-user.decorator';
 
@@ -25,6 +25,20 @@ export class AuthController {
   @Post('admin/login')
   adminLogin(@Body() dto: AdminLoginDto, @Req() req: Request) {
     return this.auth.adminLogin(dto, this.device(req));
+  }
+
+  /** Telegram Login Widget callback — admin panel opened in a browser. */
+  @Public()
+  @Post('admin/telegram-widget')
+  adminWidget(@Body() dto: TelegramWidgetLoginDto, @Req() req: Request) {
+    return this.auth.loginWithWidget({ ...dto }, this.device(req), true);
+  }
+
+  /** Same widget, plain user session (no allowlist requirement). */
+  @Public()
+  @Post('telegram/widget')
+  widget(@Body() dto: TelegramWidgetLoginDto, @Req() req: Request) {
+    return this.auth.loginWithWidget({ ...dto }, this.device(req), false);
   }
 
   @Public()

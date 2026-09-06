@@ -70,24 +70,64 @@ export class AuthService {
     return this.openSession(user, device, false);
   }
 
+  /**
+   * Telegram Login Widget sign-in (admin panel opened in a browser).
+   * `requireAdmin` gates the allowlist: the same verified identity can also be
+   * used for a plain user session if we ever expose widget login to buyers.
+   */
+  async loginWithWidget(
+    payload: Record<string, unknown>,
+    device: DeviceMeta,
+    requireAdmin: boolean,
+  ): Promise<AuthResponse> {
+    const tg = this.initData.verifyLoginWidget(payload);
+
+    if (requireAdmin) {
+      if (!this.isAllowlisted(tg.id, tg.username)) {
+        throw new AppException(ERROR_CODES.AUTH_ADMIN_NOT_ALLOWLISTED, 'Not on admin allowlist');
+      }
+      const userId = await this.provisionAdmin(tg, device);
+      const user = await this.prisma.user.findUniqueOrThrow({
+        where: { id: userId },
+        include: { sellerProfile: true },
+      });
+      this.assertUsable(user.status);
+      return this.openSession(user, device, true);
+    }
+
+    const user = await this.prisma.user.upsert({
+      where: { telegramId: BigInt(tg.id) },
+      create: {
+        telegramId: BigInt(tg.id),
+        username: tg.username ?? null,
+        firstName: tg.first_name ?? null,
+        lastName: tg.last_name ?? null,
+        photoUrl: tg.photo_url ?? null,
+        buyerProfile: {
+          create: { displayName: [tg.first_name, tg.last_name].filter(Boolean).join(' ') || 'User' },
+        },
+      },
+      update: {
+        username: tg.username ?? null,
+        photoUrl: tg.photo_url ?? null,
+        lastSeenAt: new Date(),
+      },
+      include: { sellerProfile: true },
+    });
+    this.assertUsable(user.status);
+    return this.openSession(user, device, false);
+  }
+
   async adminLogin(input: AdminLoginInput, device: DeviceMeta): Promise<AuthResponse> {
     let userId: string;
 
     if (input.initData) {
       const parsed = this.initData.verify(input.initData);
       if (!parsed.user) throw new AppException(ERROR_CODES.AUTH_INITDATA_INVALID, 'no user');
-      const allow = this.env.ADMIN_TELEGRAM_ALLOWLIST;
-      if (!allow.includes(String(parsed.user.id))) {
+      if (!this.isAllowlisted(parsed.user.id, parsed.user.username)) {
         throw new AppException(ERROR_CODES.AUTH_ADMIN_NOT_ALLOWLISTED, 'Not on admin allowlist');
       }
-      const user = await this.prisma.user.findUnique({
-        where: { telegramId: BigInt(parsed.user.id) },
-        include: { adminUser: true },
-      });
-      if (!user?.adminUser?.isAllowlisted) {
-        throw new AppException(ERROR_CODES.AUTH_ADMIN_NOT_ALLOWLISTED, 'No admin account');
-      }
-      userId = user.id;
+      userId = await this.provisionAdmin(parsed.user, device);
     } else {
       // email + password (+ TOTP) fallback — hashing/TOTP check wired in M1
       throw new AppException(ERROR_CODES.AUTH_TOKEN_INVALID, 'Email login not enabled yet');
@@ -98,10 +138,6 @@ export class AuthService {
       include: { sellerProfile: true },
     });
     this.assertUsable(user.status);
-    await this.prisma.adminUser.update({
-      where: { userId },
-      data: { lastLoginAt: new Date() },
-    });
     return this.openSession(user, device, true);
   }
 
@@ -156,6 +192,131 @@ export class AuthService {
       },
       orderBy: { lastUsedAt: 'desc' },
     });
+  }
+
+  // ---- admin allowlist ----
+
+  /**
+   * ADMIN_TELEGRAM_ALLOWLIST accepts numeric Telegram ids and @usernames.
+   * Numeric ids are preferred — a username can be released and re-registered
+   * by someone else, an id cannot. Usernames are matched case-insensitively.
+   */
+  private isAllowlisted(telegramId: number, username?: string): boolean {
+    const entries = this.env.ADMIN_TELEGRAM_ALLOWLIST.map((e) => e.trim()).filter(Boolean);
+    if (entries.length === 0) return false;
+    const uname = username?.toLowerCase();
+    return entries.some((entry) => {
+      if (/^\d+$/.test(entry)) return entry === String(telegramId);
+      return !!uname && entry.replace(/^@/, '').toLowerCase() === uname;
+    });
+  }
+
+  /**
+   * First allowlisted sign-in bootstraps the operator account: creates/updates
+   * the User from initData, attaches an AdminUser record and grants SUPERADMIN.
+   * Any AdminUser that is no longer on the allowlist is deactivated in the same
+   * pass, so the allowlist stays the single source of truth for admin access.
+   */
+  private async provisionAdmin(
+    tg: { id: number; username?: string; first_name?: string; last_name?: string },
+    device: DeviceMeta,
+  ): Promise<string> {
+    const displayName = [tg.first_name, tg.last_name].filter(Boolean).join(' ') || 'Operator';
+
+    // Telegram usernames are globally unique, so any other row still holding
+    // this handle is a stale copy — drop it before matching the allowlist,
+    // otherwise a released handle could keep granting access to the old id.
+    if (tg.username) {
+      await this.prisma.user.updateMany({
+        where: { username: tg.username, telegramId: { not: BigInt(tg.id) } },
+        data: { username: null },
+      });
+    }
+
+    const user = await this.prisma.user.upsert({
+      where: { telegramId: BigInt(tg.id) },
+      create: {
+        telegramId: BigInt(tg.id),
+        username: tg.username ?? null,
+        firstName: tg.first_name ?? null,
+        lastName: tg.last_name ?? null,
+        roles: [ROLES.USER, ROLES.SUPERADMIN],
+        buyerProfile: { create: { displayName } },
+      },
+      update: {
+        username: tg.username ?? null,
+        firstName: tg.first_name ?? null,
+        lastName: tg.last_name ?? null,
+        lastSeenAt: new Date(),
+      },
+      select: { id: true, roles: true },
+    });
+
+    if (!user.roles.includes(ROLES.SUPERADMIN)) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { roles: { push: ROLES.SUPERADMIN } },
+      });
+    }
+
+    await this.prisma.adminUser.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id, isAllowlisted: true, lastLoginAt: new Date() },
+      update: { isAllowlisted: true, lastLoginAt: new Date() },
+    });
+
+    await this.revokeStaleAdmins(user.id);
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorType: 'ADMIN',
+        actorId: user.id,
+        action: 'admin.login',
+        targetType: 'AdminUser',
+        targetId: user.id,
+        after: { telegramId: String(tg.id), username: tg.username ?? null },
+        ip: device.ip ?? null,
+        userAgent: device.userAgent ?? null,
+      },
+    });
+
+    return user.id;
+  }
+
+  /** Deactivate every admin account whose identity left the allowlist. */
+  private async revokeStaleAdmins(keepUserId: string): Promise<void> {
+    const admins = await this.prisma.adminUser.findMany({
+      where: { isAllowlisted: true, userId: { not: keepUserId } },
+      select: { id: true, userId: true, user: { select: { telegramId: true, username: true } } },
+    });
+
+    for (const admin of admins) {
+      if (this.isAllowlisted(Number(admin.user.telegramId), admin.user.username ?? undefined)) {
+        continue;
+      }
+      await this.prisma.$transaction([
+        this.prisma.adminUser.update({ where: { id: admin.id }, data: { isAllowlisted: false } }),
+        this.prisma.user.update({
+          where: { id: admin.userId },
+          data: { roles: { set: [ROLES.USER] } },
+        }),
+        // kill any live admin session for the revoked operator
+        this.prisma.session.updateMany({
+          where: { userId: admin.userId, isAdminSession: true, revokedAt: null },
+          data: { revokedAt: new Date() },
+        }),
+        this.prisma.auditLog.create({
+          data: {
+            actorType: 'SYSTEM',
+            action: 'admin.revoked',
+            targetType: 'AdminUser',
+            targetId: admin.userId,
+            before: { isAllowlisted: true },
+            after: { isAllowlisted: false, reason: 'not on ADMIN_TELEGRAM_ALLOWLIST' },
+          },
+        }),
+      ]);
+    }
   }
 
   // ---- helpers ----

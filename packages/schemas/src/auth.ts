@@ -40,6 +40,18 @@ export const refreshSchema = z.object({
   refreshToken: z.string().min(10),
 });
 
+/** Payload handed back by the Telegram Login Widget (browser sign-in). */
+export const telegramWidgetLoginSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
+  username: z.string().optional(),
+  photo_url: z.string().url().optional(),
+  auth_date: z.coerce.number().int().positive(),
+  hash: z.string().min(16),
+});
+export type TelegramWidgetLoginInput = z.infer<typeof telegramWidgetLoginSchema>;
+
 export const adminLoginSchema = z
   .object({
     initData: z.string().optional(),
