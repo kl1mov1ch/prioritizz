@@ -6,7 +6,7 @@ export default function PayoutsPage() {
   const t = useT();
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold tracking-tight">{t('nav.payouts')}</h1>
+      <h1 className="title-1">{t('nav.payouts')}</h1>
       <EmptyState
         title={t('nav.payouts')}
         description={t('admin.payoutsSoon')}

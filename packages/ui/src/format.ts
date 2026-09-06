@@ -28,22 +28,23 @@ export function timeAgo(iso: string): string {
   return `${Math.round(hrs / 24)}d ago`;
 }
 
-const STATUS_TONE: Record<string, 'default' | 'secondary' | 'success' | 'warning' | 'destructive'> =
-  {
-    DRAFT: 'secondary',
-    PENDING_PAYMENT: 'warning',
-    PAID: 'default',
-    IN_ESCROW: 'default',
-    IN_PROGRESS: 'default',
-    DELIVERED: 'warning',
-    COMPLETED: 'success',
-    CANCELED: 'secondary',
-    REFUNDED: 'destructive',
-    PARTIALLY_REFUNDED: 'warning',
-    DISPUTED: 'destructive',
-    CHARGEBACK: 'destructive',
-    EXPIRED: 'secondary',
-  };
+type Tone = 'secondary' | 'info' | 'success' | 'warning' | 'destructive' | 'purple';
+
+const STATUS_TONE: Record<string, Tone> = {
+  DRAFT: 'secondary',
+  PENDING_PAYMENT: 'warning',
+  PAID: 'info',
+  IN_ESCROW: 'info',
+  IN_PROGRESS: 'info',
+  DELIVERED: 'warning',
+  COMPLETED: 'success',
+  CANCELED: 'secondary',
+  REFUNDED: 'destructive',
+  PARTIALLY_REFUNDED: 'warning',
+  DISPUTED: 'destructive',
+  CHARGEBACK: 'destructive',
+  EXPIRED: 'secondary',
+};
 
 export function statusTone(status: string) {
   return STATUS_TONE[status] ?? 'secondary';

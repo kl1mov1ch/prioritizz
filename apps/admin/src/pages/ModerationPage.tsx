@@ -6,7 +6,7 @@ export default function ModerationPage() {
   const t = useT();
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold tracking-tight">{t('admin.moderationQueue')}</h1>
+      <h1 className="title-1">{t('admin.moderationQueue')}</h1>
       <EmptyState
         title={t('nav.moderation')}
         description={t('admin.moderationSoon')}

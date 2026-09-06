@@ -37,7 +37,11 @@ export const en = {
     failedDesc: 'Open the app from Telegram and try again.',
     adminTitle: 'Prioritizz Admin',
     adminSubtitle: 'Sign in with your allowlisted Telegram operator account.',
-    initDataPlaceholder: 'Telegram initData (dev)',
+    initDataLabel: 'Telegram initData',
+    initDataHint: 'Opened from Telegram this fills in automatically. Paste it by hand for local dev.',
+    initDataPlaceholder: 'query_id=…&user=…&auth_date=…&hash=…',
+    allowlistNote:
+      'Access is limited to Telegram IDs on ADMIN_TELEGRAM_ALLOWLIST. Every sign-in is written to the audit log.',
   },
   catalog: {
     searchPlaceholder: 'Search services…',

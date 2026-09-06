@@ -2,6 +2,7 @@ import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tan
 import {
   LoadingState,
   EmptyState,
+  IconButton,
   IconChevronLeft,
   IconChevronRight,
 } from '@prioritizz/ui';
@@ -27,14 +28,17 @@ export function DataTable<T>({ data, columns, isLoading, page, pageSize, total, 
   if (!data.length) return <EmptyState title={t('common.notFound')} />;
 
   return (
-    <div className="space-y-3">
-      <div className="glass overflow-x-auto rounded-2xl">
-        <table className="w-full text-sm">
-          <thead className="border-b hairline text-left text-xs uppercase tracking-wide text-muted-foreground">
+    <div className="space-y-4">
+      <div className="material overflow-x-auto rounded-2xl">
+        <table className="w-full border-collapse text-subhead">
+          <thead>
             {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id}>
+              <tr key={hg.id} className="border-b border-separator text-left">
                 {hg.headers.map((h) => (
-                  <th key={h.id} className="px-4 py-3 font-semibold">
+                  <th
+                    key={h.id}
+                    className="whitespace-nowrap px-4 py-3 text-caption font-semibold uppercase tracking-wide text-subtle"
+                  >
                     {flexRender(h.column.columnDef.header, h.getContext())}
                   </th>
                 ))}
@@ -45,10 +49,10 @@ export function DataTable<T>({ data, columns, isLoading, page, pageSize, total, 
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="border-b hairline transition-colors last:border-0 hover:bg-[hsl(var(--glass-bg))]"
+                className="border-b border-separator transition-colors last:border-0 hover:bg-grouped/60"
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-4 py-3">
+                  <td key={cell.id} className="px-4 py-3 align-middle">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
@@ -57,27 +61,28 @@ export function DataTable<T>({ data, columns, isLoading, page, pageSize, total, 
           </tbody>
         </table>
       </div>
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">
+
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-footnote text-muted tabular-nums">
           {t('admin.rows', { total, page, pages: totalPages })}
         </span>
         <div className="flex gap-2">
-          <button
-            className="glass inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors hover:bg-[hsl(var(--glass-bg-strong))] disabled:opacity-40"
+          <IconButton
+            label={t('admin.prev')}
             disabled={page <= 1}
-            aria-label={t('admin.prev')}
             onClick={() => onPage(page - 1)}
+            className="disabled:opacity-35"
           >
             <IconChevronLeft size={16} />
-          </button>
-          <button
-            className="glass inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors hover:bg-[hsl(var(--glass-bg-strong))] disabled:opacity-40"
+          </IconButton>
+          <IconButton
+            label={t('admin.next')}
             disabled={page >= totalPages}
-            aria-label={t('admin.next')}
             onClick={() => onPage(page + 1)}
+            className="disabled:opacity-35"
           >
             <IconChevronRight size={16} />
-          </button>
+          </IconButton>
         </div>
       </div>
     </div>

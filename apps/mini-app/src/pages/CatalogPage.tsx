@@ -12,7 +12,7 @@ import {
   IconStar,
   IconShield,
   IconClock,
-  IconArrowRight,
+  IconChevronRight,
 } from '@prioritizz/ui';
 import { useT } from '@prioritizz/i18n';
 import { api } from '../lib/api';
@@ -32,10 +32,8 @@ export default function CatalogPage() {
   return (
     <div className="space-y-5">
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">
-          <span className="text-gradient">{t('common.appName')}</span>
-        </h1>
-        <p className="text-sm text-muted-foreground">{t('common.tagline')}</p>
+        <h1 className="title-large">{t('common.appName')}</h1>
+        <p className="subhead">{t('common.tagline')}</p>
       </header>
 
       <Input
@@ -43,9 +41,10 @@ export default function CatalogPage() {
         onChange={(e) => setQ(e.target.value)}
         placeholder={t('catalog.searchPlaceholder')}
         icon={<IconSearch size={17} />}
+        aria-label={t('common.search')}
       />
 
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 no-scrollbar">
+      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         <button
           type="button"
           className="chip"
@@ -84,33 +83,36 @@ export default function CatalogPage() {
         {services.data?.items.map((s) => (
           <li key={s.id}>
             <Link to={`/catalog/${s.slug}`} className="group block">
-              <Card className="p-4 transition-transform duration-200 group-active:scale-[0.985]">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-1.5">
-                    <p className="truncate font-semibold">{s.title}</p>
-                    <p className="line-clamp-2 text-sm text-muted-foreground">{s.summary}</p>
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      <span className="chip !py-1 !text-[0.68rem]">{s.category.name}</span>
-                      <span className="inline-flex items-center gap-1 text-[0.72rem] font-semibold text-warning">
-                        <IconStar size={13} /> {s.ratingAvg.toFixed(1)}
+              <Card className="transition-transform duration-150 group-active:scale-[0.99]">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 space-y-1">
+                    <p className="truncate text-body font-semibold">{s.title}</p>
+                    <p className="line-clamp-2 text-footnote text-muted">{s.summary}</p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1.5 text-caption font-medium text-subtle">
+                      <span className="inline-flex items-center gap-1">
+                        <CategoryIcon slug={s.category.slug} size={12} />
+                        {s.category.name}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <IconStar size={12} /> {s.ratingAvg.toFixed(1)}
                       </span>
                       {s.seller.isVerified && (
-                        <span className="inline-flex items-center gap-1 text-[0.72rem] font-semibold text-success">
-                          <IconShield size={13} /> {t('catalog.verified')}
+                        <span className="inline-flex items-center gap-1 text-tint-green">
+                          <IconShield size={12} /> {t('catalog.verified')}
                         </span>
                       )}
                     </div>
                   </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-base font-bold">
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <p className="text-title3 font-semibold">
                       {formatMoney(s.basePriceAmount, s.currency)}
                     </p>
-                    <p className="mt-0.5 inline-flex items-center gap-1 text-[0.7rem] text-muted-foreground">
+                    <p className="inline-flex items-center gap-1 text-caption text-subtle">
                       <IconClock size={12} /> {t('catalog.hours', { n: s.slaHours })}
                     </p>
-                    <IconArrowRight
+                    <IconChevronRight
                       size={16}
-                      className="ml-auto mt-2 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                      className="mt-1 text-subtle transition-transform group-hover:translate-x-0.5"
                     />
                   </div>
                 </div>

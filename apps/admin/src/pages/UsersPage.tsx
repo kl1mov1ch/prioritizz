@@ -45,7 +45,7 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold tracking-tight">{t('nav.users')}</h1>
+      <h1 className="title-1">{t('nav.users')}</h1>
       <Input
         value={q}
         onChange={(e) => {

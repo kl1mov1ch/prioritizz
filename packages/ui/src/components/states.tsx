@@ -8,10 +8,23 @@ export function Spinner({ className, size = 20 }: { className?: string; size?: n
 
 export function LoadingState({ label = 'Loading…' }: { label?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-14 text-muted-foreground animate-fade-up">
-      <Spinner size={24} />
-      <span className="text-sm">{label}</span>
+    <div className="flex flex-col items-center justify-center gap-3 py-14 text-muted">
+      <Spinner size={22} />
+      <span className="text-subhead">{label}</span>
     </div>
+  );
+}
+
+function Medallion({ children, tone }: { children: React.ReactNode; tone?: 'red' }) {
+  return (
+    <span
+      className={cn(
+        'grid h-11 w-11 place-items-center rounded-2xl',
+        tone === 'red' ? 'bg-tint-red/[0.12] text-tint-red' : 'bg-grouped text-subtle',
+      )}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -27,12 +40,10 @@ export function EmptyState({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="glass flex flex-col items-center justify-center gap-2 rounded-2xl border-dashed px-6 py-14 text-center animate-fade-up">
-      <span className="mb-1 grid h-11 w-11 place-items-center rounded-2xl bg-[hsl(var(--glass-bg))] text-muted-foreground">
-        {icon ?? <IconSearch size={22} />}
-      </span>
-      <p className="font-semibold">{title}</p>
-      {description && <p className="max-w-xs text-sm text-muted-foreground">{description}</p>}
+    <div className="material flex flex-col items-center justify-center gap-2 rounded-2xl px-6 py-14 text-center">
+      <Medallion>{icon ?? <IconSearch size={22} />}</Medallion>
+      <p className="mt-1 text-body font-semibold">{title}</p>
+      {description && <p className="max-w-sm text-subhead text-muted">{description}</p>}
       {action && <div className="mt-3">{action}</div>}
     </div>
   );
@@ -50,16 +61,17 @@ export function ErrorState({
   retryLabel?: string;
 }) {
   return (
-    <div className="glass flex flex-col items-center justify-center gap-2 rounded-2xl border-destructive/25 px-6 py-14 text-center animate-fade-up">
-      <span className="mb-1 grid h-11 w-11 place-items-center rounded-2xl bg-destructive/15 text-destructive">
+    <div className="material flex flex-col items-center justify-center gap-2 rounded-2xl px-6 py-14 text-center">
+      <Medallion tone="red">
         <IconAlert size={22} />
-      </span>
-      <p className="font-semibold text-destructive">{title}</p>
-      {description && <p className="max-w-xs text-sm text-muted-foreground">{description}</p>}
+      </Medallion>
+      <p className="mt-1 text-body font-semibold">{title}</p>
+      {description && <p className="max-w-sm text-subhead text-muted">{description}</p>}
       {onRetry && (
         <button
+          type="button"
           onClick={onRetry}
-          className="mt-3 rounded-xl border border-[hsl(var(--glass-hairline))] bg-[hsl(var(--glass-bg))] px-4 py-1.5 text-sm font-medium backdrop-blur-md transition-colors hover:bg-[hsl(var(--glass-bg-strong))]"
+          className="mt-3 min-h-dense rounded-lg px-4 py-1.5 text-subhead font-semibold text-primary transition-colors hover:bg-primary/[0.08]"
         >
           {retryLabel}
         </button>

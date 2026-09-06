@@ -3,45 +3,51 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../cn.js';
 import { IconSpinner } from '../icons.js';
 
+/**
+ * Apple button roles. One system tint per surface — `primary` is the app tint
+ * (blue); semantic tints are reserved for status, not for competing actions.
+ * No drop-shadows: depth comes from material layering.
+ */
 const buttonVariants = cva(
-  'relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold tracking-[0.01em] transition-[transform,box-shadow,background,color] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 disabled:pointer-events-none disabled:opacity-55',
+  'inline-flex select-none items-center justify-center gap-2 whitespace-nowrap font-sans font-semibold tracking-[-0.012em] transition-[background,color,opacity,transform] duration-150 ease-out active:scale-[0.975] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/[0.18] disabled:pointer-events-none disabled:opacity-40',
   {
     variants: {
       variant: {
-        default:
-          'text-primary-foreground bg-brand-gradient shadow-glow hover:brightness-[1.06]',
-        glass:
-          'glass text-foreground hover:bg-[hsl(var(--glass-bg-strong))]',
+        primary: 'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/85',
+        bordered:
+          'border border-primary bg-transparent text-primary hover:bg-primary/[0.08] active:bg-primary/[0.12]',
+        material:
+          'material text-foreground hover:bg-[rgb(var(--material-thick))] active:bg-[rgb(var(--material-thick))]',
+        grouped: 'bg-grouped text-foreground hover:brightness-[0.97] active:brightness-95',
         destructive:
-          'bg-destructive text-destructive-foreground shadow-[0_10px_28px_-12px_hsl(var(--destructive)/0.7)] hover:brightness-105',
-        outline:
-          'border border-[hsl(var(--glass-hairline))] bg-transparent hover:bg-[hsl(var(--glass-bg))] hover:backdrop-blur-md',
-        ghost: 'hover:bg-[hsl(var(--glass-bg))] hover:backdrop-blur-md',
-        link: 'text-primary underline-offset-4 hover:underline',
+          'bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/85',
+        plain: 'bg-transparent text-primary hover:bg-primary/[0.07] active:bg-primary/[0.12]',
+        link: 'bg-transparent p-0 text-primary underline-offset-[3px] hover:underline',
       },
       size: {
-        default: 'h-11 px-5',
-        sm: 'h-9 rounded-lg px-3.5 text-[0.8rem]',
-        lg: 'h-12 px-8 text-base',
-        icon: 'h-11 w-11',
-        block: 'h-12 w-full px-5',
+        sm: 'min-h-dense rounded-[10px] px-3 text-footnote',
+        default: 'min-h-touch rounded-lg px-5 py-2.5 text-body md:min-h-[36px] md:text-subhead',
+        lg: 'min-h-[52px] rounded-[14px] px-6 text-title3',
+        icon: 'h-11 w-11 rounded-lg md:h-9 md:w-9',
+        block: 'min-h-touch w-full rounded-lg px-5 py-3 text-body',
       },
     },
-    defaultVariants: { variant: 'default', size: 'default' },
+    defaultVariants: { variant: 'primary', size: 'default' },
   },
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'color'>,
     VariantProps<typeof buttonVariants> {
   loading?: boolean;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, loading, disabled, children, ...props }, ref) => (
+  ({ className, variant, size, loading, disabled, children, type = 'button', ...props }, ref) => (
     <button
       ref={ref}
-      className={cn(buttonVariants({ variant, size, className }))}
+      type={type}
+      className={cn(buttonVariants({ variant, size }), className)}
       disabled={disabled || loading}
       {...props}
     >
@@ -52,18 +58,19 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 Button.displayName = 'Button';
 
-/** Square frosted icon button. */
+/** Square control for toolbars — frosted material, never shadowed. */
 export const IconButton = React.forwardRef<
   HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement> & { label: string }
->(({ className, label, children, ...props }, ref) => (
+  React.ButtonHTMLAttributes<HTMLButtonElement> & { label: string; tone?: 'material' | 'plain' }
+>(({ className, label, tone = 'material', children, ...props }, ref) => (
   <button
     ref={ref}
     type="button"
     aria-label={label}
     title={label}
     className={cn(
-      'glass inline-flex h-10 w-10 items-center justify-center rounded-xl text-foreground transition-[transform,background] duration-150 active:scale-90 hover:bg-[hsl(var(--glass-bg-strong))] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25',
+      'inline-flex h-9 w-9 items-center justify-center rounded-[10px] text-foreground transition-[background,transform] duration-150 active:scale-90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/[0.18]',
+      tone === 'material' ? 'material' : 'hover:bg-grouped',
       className,
     )}
     {...props}

@@ -114,7 +114,7 @@ export function ThemeToggle({
         aria-label={l.light}
         title={l.light}
         onClick={() => setSetting('light')}
-        className="!px-2"
+        className="!px-2.5"
       >
         <IconSun size={16} />
       </button>
@@ -125,7 +125,7 @@ export function ThemeToggle({
         aria-label={l.dark}
         title={l.dark}
         onClick={() => setSetting('dark')}
-        className="!px-2"
+        className="!px-2.5"
       >
         <IconMoon size={16} />
       </button>

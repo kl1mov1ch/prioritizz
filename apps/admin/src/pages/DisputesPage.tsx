@@ -6,7 +6,7 @@ export default function DisputesPage() {
   const t = useT();
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold tracking-tight">{t('nav.disputes')}</h1>
+      <h1 className="title-1">{t('nav.disputes')}</h1>
       <EmptyState
         title={t('nav.disputes')}
         description={t('admin.disputesSoon')}

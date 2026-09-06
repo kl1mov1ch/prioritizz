@@ -38,7 +38,12 @@ export const ru: Messages = {
     failedDesc: 'Откройте приложение из Telegram и попробуйте снова.',
     adminTitle: 'Prioritizz Admin',
     adminSubtitle: 'Войдите под аккаунтом оператора из allowlist.',
-    initDataPlaceholder: 'Telegram initData (dev)',
+    initDataLabel: 'Telegram initData',
+    initDataHint:
+      'При открытии из Telegram подставляется автоматически. Для локальной разработки вставьте вручную.',
+    initDataPlaceholder: 'query_id=…&user=…&auth_date=…&hash=…',
+    allowlistNote:
+      'Доступ открыт только Telegram ID из ADMIN_TELEGRAM_ALLOWLIST. Каждый вход пишется в аудит-лог.',
   },
   catalog: {
     searchPlaceholder: 'Поиск услуг…',

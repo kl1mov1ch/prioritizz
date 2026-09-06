@@ -16,12 +16,13 @@ export function AppShell() {
 
   return (
     <div className="mx-auto flex min-h-full max-w-lg flex-col">
-      <header className="glass-strong sticky top-0 z-20 mx-3 mt-3 flex items-center justify-between rounded-2xl px-3.5 py-2.5">
-        <span className="flex items-center gap-2 text-sm font-semibold">
-          <span className="grid h-7 w-7 place-items-center rounded-xl bg-brand-gradient text-primary-foreground shadow-glow">
+      {/* Nav bar: thin material over content, no shadow */}
+      <header className="material-thin sticky top-0 z-20 flex items-center justify-between gap-3 px-4 py-2.5 safe-t">
+        <span className="flex items-center gap-2.5">
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-primary-foreground">
             <IconShield size={16} />
           </span>
-          <span className="text-gradient">{t('common.appName')}</span>
+          <span className="font-display text-body font-semibold">{t('common.appName')}</span>
         </span>
         <div className="flex items-center gap-2">
           <LanguageToggle />
@@ -29,7 +30,7 @@ export function AppShell() {
         </div>
       </header>
 
-      <main key={location.pathname} className="flex-1 px-4 pb-28 pt-5 animate-fade-up">
+      <main key={location.pathname} className="flex-1 animate-fade-up px-4 pb-28 pt-5">
         {status === 'loading' && <LoadingState label={t('auth.authorizing')} />}
         {status === 'error' && (
           <ErrorState

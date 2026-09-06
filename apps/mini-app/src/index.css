@@ -1,3 +1,9 @@
+/* Self-hosted fallbacks for platforms without SF Pro. SF Pro still wins the
+   stack on Apple devices — see --font-text / --font-display in the UI package. */
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/figtree';
+@import '@fontsource-variable/jetbrains-mono';
+
 @import '@prioritizz/ui/styles.css';
 
 html,
@@ -8,10 +14,4 @@ body,
 
 body {
   overscroll-behavior-y: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Map Telegram theme params onto our tokens when running inside Telegram. */
-:root {
-  --tg-viewport-height: 100vh;
 }

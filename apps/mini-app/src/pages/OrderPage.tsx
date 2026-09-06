@@ -5,12 +5,12 @@ import {
   Button,
   Card,
   ErrorState,
+  GroupedList,
+  GroupedRow,
   LoadingState,
   formatMoney,
   formatDateTime,
   statusTone,
-  IconCheck,
-  IconClock,
 } from '@prioritizz/ui';
 import { useT } from '@prioritizz/i18n';
 import { api } from '../lib/api';
@@ -45,27 +45,43 @@ export default function OrderPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-mono text-lg font-bold">{o.reference}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="font-mono text-title2 font-semibold">{o.reference}</h1>
         <Badge variant={statusTone(o.status)}>{o.status}</Badge>
       </div>
 
-      <Card className="space-y-3">
-        <p className="font-semibold">{o.service.title}</p>
-        <dl className="space-y-2 text-sm">
-          <Row k={t('orders.amount')} v={formatMoney(o.totalAmount, o.currency)} strong />
-          <Row k={t('orders.payment')} v={o.paymentStatus} />
-          <Row k={t('orders.escrow')} v={o.escrowStatus} />
+      <Card flush className="overflow-hidden">
+        <div className="px-4 pb-3 pt-4 md:px-5">
+          <p className="text-body font-semibold">{o.service.title}</p>
+        </div>
+        <GroupedList className="rounded-none bg-transparent">
+          <GroupedRow>
+            <span className="text-subhead text-muted">{t('orders.amount')}</span>
+            <span className="text-body font-semibold">
+              {formatMoney(o.totalAmount, o.currency)}
+            </span>
+          </GroupedRow>
+          <GroupedRow>
+            <span className="text-subhead text-muted">{t('orders.payment')}</span>
+            <span className="text-subhead">{o.paymentStatus}</span>
+          </GroupedRow>
+          <GroupedRow>
+            <span className="text-subhead text-muted">{t('orders.escrow')}</span>
+            <span className="text-subhead">{o.escrowStatus}</span>
+          </GroupedRow>
           {o.autoReleaseAt && (
-            <Row k={t('orders.autoConfirm')} v={formatDateTime(o.autoReleaseAt)} />
+            <GroupedRow>
+              <span className="text-subhead text-muted">{t('orders.autoConfirm')}</span>
+              <span className="text-subhead">{formatDateTime(o.autoReleaseAt)}</span>
+            </GroupedRow>
           )}
-        </dl>
+        </GroupedList>
       </Card>
 
       {o.deliveryPayload && (
-        <Card className="space-y-1.5">
-          <p className="text-sm font-semibold">{t('orders.result')}</p>
-          <pre className="whitespace-pre-wrap break-all rounded-xl bg-[hsl(var(--glass-bg))] p-3 text-xs">
+        <Card className="space-y-2">
+          <p className="text-footnote font-semibold text-muted">{t('orders.result')}</p>
+          <pre className="whitespace-pre-wrap break-all rounded-lg bg-grouped p-3 font-mono text-footnote">
             {o.deliveryPayload}
           </pre>
         </Card>
@@ -73,37 +89,25 @@ export default function OrderPage() {
 
       {o.status === 'DELIVERED' && (
         <Button size="block" loading={confirm.isPending} onClick={() => confirm.mutate()}>
-          <IconCheck size={17} /> {t('orders.confirmReceipt')}
+          {t('orders.confirmReceipt')}
         </Button>
       )}
 
       <Card className="space-y-3">
-        <p className="text-sm font-semibold">{t('orders.history')}</p>
-        <ol className="space-y-3">
+        <p className="text-footnote font-semibold text-muted">{t('orders.history')}</p>
+        <ol className="relative space-y-4 border-l border-separator pl-4">
           {(timeline.data ?? []).map((e) => (
-            <li key={e.id} className="flex gap-3 text-xs">
-              <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-[hsl(var(--glass-bg))] text-muted-foreground">
-                <IconClock size={12} />
-              </span>
-              <div className="text-muted-foreground">
-                <span className="font-mono">{formatDateTime(e.createdAt)}</span>
-                <br />
-                <span className="text-foreground">{e.type}</span>
+            <li key={e.id} className="relative">
+              <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-primary" />
+              <p className="text-footnote font-medium">
+                {e.type}
                 {e.toStatus ? ` → ${e.toStatus}` : ''}
-              </div>
+              </p>
+              <p className="font-mono text-caption text-subtle">{formatDateTime(e.createdAt)}</p>
             </li>
           ))}
         </ol>
       </Card>
-    </div>
-  );
-}
-
-function Row({ k, v, strong }: { k: string; v: string; strong?: boolean }) {
-  return (
-    <div className="flex items-center justify-between">
-      <dt className="text-muted-foreground">{k}</dt>
-      <dd className={strong ? 'text-base font-bold' : 'font-medium'}>{v}</dd>
     </div>
   );
 }
