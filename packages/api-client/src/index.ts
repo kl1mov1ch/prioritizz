@@ -1,0 +1,153 @@
+import type {
+  AdminLoginInput,
+  AuthResponse,
+  BecomeSellerInput,
+  Category,
+  CategoryUpsertInput,
+  CommissionRule,
+  CommissionRuleUpsertInput,
+  CreateOrderInput,
+  CreatePaymentIntentInput,
+  DashboardMetrics,
+  Dispute,
+  ModerationDecisionInput,
+  OpenDisputeInput,
+  Order,
+  OrderConfirmInput,
+  OrderDeliverInput,
+  OrderEvent,
+  PaymentIntent,
+  Payout,
+  RequestPayoutInput,
+  ResolveDisputeInput,
+  Service,
+  ServiceListQuery,
+  ServiceUpsertInput,
+  Subscription,
+  SubscriptionPlan,
+  SubscribeInput,
+  UpdateMeInput,
+  UserProfile,
+  WalletSummary,
+} from '@prioritizz/types';
+import { HttpClient, type HttpClientOptions } from './http.js';
+
+export * from './http.js';
+
+type Paginated<T> = {
+  items: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+type Q = Record<string, string | number | boolean | undefined | null>;
+
+export function createApiClient(options: HttpClientOptions) {
+  const http = new HttpClient(options);
+
+  return {
+    http,
+
+    auth: {
+      telegram: (initData: string) =>
+        http.post<AuthResponse>('auth/telegram', { initData }, { skipAuth: true }),
+      refresh: (refreshToken: string) =>
+        http.post<AuthResponse>('auth/refresh', { refreshToken }, { skipAuth: true }),
+      adminLogin: (input: AdminLoginInput) =>
+        http.post<AuthResponse>('auth/admin/login', input, { skipAuth: true }),
+      logout: () => http.post<void>('auth/logout'),
+      sessions: () => http.get<{ items: unknown[] }>('auth/sessions'),
+    },
+
+    me: {
+      get: () => http.get<UserProfile>('me'),
+      update: (input: UpdateMeInput) => http.patch<UserProfile>('me', input),
+      wallet: () => http.get<WalletSummary>('me/wallet'),
+      becomeSeller: (input: BecomeSellerInput) => http.post<UserProfile>('me/seller', input),
+    },
+
+    catalog: {
+      categories: () => http.get<Category[]>('categories'),
+      listServices: (query: Partial<ServiceListQuery>) =>
+        http.get<Paginated<Service>>('services', { query: query as Q }),
+      getService: (idOrSlug: string) => http.get<Service>(`services/${idOrSlug}`),
+      // seller
+      createService: (input: ServiceUpsertInput) => http.post<Service>('seller/services', input),
+      updateService: (id: string, input: ServiceUpsertInput) =>
+        http.put<Service>(`seller/services/${id}`, input),
+      submitService: (id: string) => http.post<Service>(`seller/services/${id}/submit`),
+      pauseService: (id: string) => http.post<Service>(`seller/services/${id}/pause`),
+    },
+
+    orders: {
+      list: (query: Q) => http.get<Paginated<Order>>('orders', { query }),
+      get: (id: string) => http.get<Order>(`orders/${id}`),
+      timeline: (id: string) => http.get<OrderEvent[]>(`orders/${id}/events`),
+      create: (input: CreateOrderInput, idempotencyKey: string) =>
+        http.post<Order>('orders', input, { idempotencyKey }),
+      cancel: (id: string, reason: string) => http.post<Order>(`orders/${id}/cancel`, { reason }),
+      deliver: (id: string, input: OrderDeliverInput) =>
+        http.post<Order>(`orders/${id}/deliver`, input),
+      confirm: (id: string, input: OrderConfirmInput) =>
+        http.post<Order>(`orders/${id}/confirm`, input),
+      message: (id: string, body: string) => http.post<void>(`orders/${id}/messages`, { body }),
+    },
+
+    payments: {
+      createIntent: (input: CreatePaymentIntentInput, idempotencyKey: string) =>
+        http.post<PaymentIntent>('payments/intents', input, { idempotencyKey }),
+      getIntent: (id: string) => http.get<PaymentIntent>(`payments/intents/${id}`),
+    },
+
+    disputes: {
+      open: (input: OpenDisputeInput, idempotencyKey: string) =>
+        http.post<Dispute>('disputes', input, { idempotencyKey }),
+      get: (id: string) => http.get<Dispute>(`disputes/${id}`),
+      message: (id: string, body: string) => http.post<void>(`disputes/${id}/messages`, { body }),
+    },
+
+    subscriptions: {
+      plans: (audience?: string) =>
+        http.get<SubscriptionPlan[]>('subscription-plans', { query: { audience } }),
+      mine: () => http.get<Subscription[]>('me/subscriptions'),
+      subscribe: (input: SubscribeInput, idempotencyKey: string) =>
+        http.post<Subscription>('subscriptions', input, { idempotencyKey }),
+      cancel: (id: string) => http.post<Subscription>(`subscriptions/${id}/cancel`),
+    },
+
+    payouts: {
+      mine: (query?: Q) => http.get<Paginated<Payout>>('me/payouts', { query }),
+      request: (input: RequestPayoutInput, idempotencyKey: string) =>
+        http.post<Payout>('payouts', input, { idempotencyKey }),
+    },
+
+    admin: {
+      dashboard: (range: string) =>
+        http.get<DashboardMetrics>('admin/dashboard', { query: { range } }),
+      users: (query: Q) => http.get<Paginated<UserProfile>>('admin/users', { query }),
+      moderateService: (id: string, input: ModerationDecisionInput) =>
+        http.post<Service>(`admin/services/${id}/moderate`, input),
+      disputes: (query: Q) => http.get<Paginated<Dispute>>('admin/disputes', { query }),
+      resolveDispute: (id: string, input: ResolveDisputeInput) =>
+        http.post<Dispute>(`admin/disputes/${id}/resolve`, input),
+      payouts: (query: Q) => http.get<Paginated<Payout>>('admin/payouts', { query }),
+      decidePayout: (id: string, decision: 'APPROVE' | 'REJECT', note?: string) =>
+        http.post<Payout>(`admin/payouts/${id}/decision`, { decision, note }),
+      commissionRules: () => http.get<CommissionRule[]>('admin/commission-rules'),
+      upsertCommissionRule: (input: CommissionRuleUpsertInput, id?: string) =>
+        id
+          ? http.put<CommissionRule>(`admin/commission-rules/${id}`, input)
+          : http.post<CommissionRule>('admin/commission-rules', input),
+      categories: {
+        list: () => http.get<Category[]>('admin/categories'),
+        upsert: (input: CategoryUpsertInput, id?: string) =>
+          id
+            ? http.put<Category>(`admin/categories/${id}`, input)
+            : http.post<Category>('admin/categories', input),
+      },
+    },
+  };
+}
+
+export type ApiClient = ReturnType<typeof createApiClient>;

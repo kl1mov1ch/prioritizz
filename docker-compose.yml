@@ -1,0 +1,115 @@
+name: prioritizz
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: prioritizz
+      POSTGRES_PASSWORD: prioritizz
+      POSTGRES_DB: prioritizz
+    ports:
+      # host port 5442 to avoid clashing with a native PostgreSQL on 5432
+      - '5442:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U prioritizz']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '6399:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: prioritizz
+      MINIO_ROOT_PASSWORD: prioritizz
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  createbuckets:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 prioritizz prioritizz &&
+      mc mb -p local/prioritizz-media &&
+      mc anonymous set download local/prioritizz-media;
+      exit 0;
+      "
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    command: node apps/api/dist/main.js
+    environment:
+      NODE_ENV: production
+      APP_MODE: http
+      DATABASE_URL: postgresql://prioritizz:prioritizz@postgres:5432/prioritizz?schema=public
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      SMTP_URL: smtp://mailpit:1025
+    env_file:
+      - .env
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles: ['full']
+
+  worker:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    command: node apps/api/dist/main.js
+    environment:
+      NODE_ENV: production
+      APP_MODE: worker
+      DATABASE_URL: postgresql://prioritizz:prioritizz@postgres:5432/prioritizz?schema=public
+      REDIS_URL: redis://redis:6379
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles: ['full']
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

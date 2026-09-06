@@ -1,0 +1,17 @@
+@import '@prioritizz/ui/styles.css';
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Map Telegram theme params onto our tokens when running inside Telegram. */
+:root {
+  --tg-viewport-height: 100vh;
+}

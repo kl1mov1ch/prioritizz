@@ -1,0 +1,25 @@
+{
+  "name": "@prioritizz/bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "lint": "eslint \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@prioritizz/config": "workspace:*",
+    "@prioritizz/constants": "workspace:*",
+    "bullmq": "^5.34.5",
+    "ioredis": "^5.4.2",
+    "telegraf": "^4.16.3",
+    "tsx": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

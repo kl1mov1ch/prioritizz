@@ -1,0 +1,37 @@
+{
+  "name": "@prioritizz/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@prioritizz/constants": "workspace:*",
+    "@prioritizz/schemas": "workspace:*",
+    "@prioritizz/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@prioritizz/config": "workspace:*",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "module": "./dist/index.js",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module"
+}
