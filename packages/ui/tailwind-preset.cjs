@@ -1,6 +1,6 @@
 /**
- * Shared Tailwind preset. Both apps extend this so tokens stay identical.
- * Colours are CSS variables (see src/styles.css) — enables light/dark + Telegram theme.
+ * Shared Tailwind preset — "Aurora Glass".
+ * Colours are CSS variables (see src/styles.css): light / dark / Telegram theme.
  */
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -17,6 +17,8 @@ module.exports = {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
         },
+        brand2: 'hsl(var(--brand-2))',
+        brand3: 'hsl(var(--brand-3))',
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
@@ -32,12 +34,38 @@ module.exports = {
         card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        '2xl': 'var(--radius)',
+        xl: 'calc(var(--radius) - 0.25rem)',
+        lg: 'calc(var(--radius) - 0.4rem)',
+        md: 'calc(var(--radius) - 0.55rem)',
+        sm: 'calc(var(--radius) - 0.7rem)',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'SF Pro Text',
+          'Inter',
+          'Segoe UI',
+          'system-ui',
+          'sans-serif',
+        ],
+      },
+      boxShadow: {
+        glass: '0 24px 60px -24px hsl(var(--glass-shadow))',
+        glow: '0 10px 30px -10px hsl(var(--primary) / 0.55)',
+      },
+      backgroundImage: {
+        'brand-gradient': 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--brand-2)))',
+      },
+      keyframes: {
+        'fade-up': {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'fade-up': 'fade-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both',
       },
     },
   },

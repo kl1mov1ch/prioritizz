@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { IconSun, IconMoon } from './icons.js';
 
 export type Theme = 'light' | 'dark';
 export type ThemeSetting = Theme | 'system';
@@ -94,7 +95,7 @@ export function useTheme(): ThemeContextValue {
   return ctx;
 }
 
-/** Compact icon button that flips between light and dark. */
+/** iOS-style segmented light/dark switch with SVG glyphs. */
 export function ThemeToggle({
   className,
   labels,
@@ -102,21 +103,32 @@ export function ThemeToggle({
   className?: string;
   labels?: { light: string; dark: string };
 }) {
-  const { theme, toggle } = useTheme();
-  const isDark = theme === 'dark';
+  const { theme, setSetting } = useTheme();
   const l = labels ?? { light: 'Light', dark: 'Dark' };
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-label={isDark ? l.light : l.dark}
-      title={isDark ? l.light : l.dark}
-      className={
-        'inline-flex h-9 w-9 items-center justify-center rounded-md border text-base transition-colors hover:bg-accent ' +
-        (className ?? '')
-      }
-    >
-      {isDark ? '☀️' : '🌙'}
-    </button>
+    <div className={'segmented ' + (className ?? '')} role="group" aria-label={`${l.light} / ${l.dark}`}>
+      <button
+        type="button"
+        data-active={theme === 'light'}
+        aria-pressed={theme === 'light'}
+        aria-label={l.light}
+        title={l.light}
+        onClick={() => setSetting('light')}
+        className="!px-2"
+      >
+        <IconSun size={16} />
+      </button>
+      <button
+        type="button"
+        data-active={theme === 'dark'}
+        aria-pressed={theme === 'dark'}
+        aria-label={l.dark}
+        title={l.dark}
+        onClick={() => setSetting('dark')}
+        className="!px-2"
+      >
+        <IconMoon size={16} />
+      </button>
+    </div>
   );
 }

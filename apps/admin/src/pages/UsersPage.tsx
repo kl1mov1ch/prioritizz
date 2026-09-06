@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Badge } from '@prioritizz/ui';
+import { Badge, Input, IconSearch } from '@prioritizz/ui';
 import { useT } from '@prioritizz/i18n';
 import { api } from '../lib/api';
 import { DataTable } from '../components/DataTable';
@@ -22,7 +22,7 @@ export default function UsersPage() {
       {
         header: t('admin.rolesCol'),
         cell: ({ row }) => (
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
             {row.original.roles.map((r: string) => (
               <Badge key={r} variant="secondary">
                 {r}
@@ -45,15 +45,16 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">{t('nav.users')}</h1>
-      <input
+      <h1 className="text-xl font-bold tracking-tight">{t('nav.users')}</h1>
+      <Input
         value={q}
         onChange={(e) => {
           setPage(1);
           setQ(e.target.value);
         }}
         placeholder={t('admin.searchUsers')}
-        className="w-64 rounded-md border bg-background px-3 py-2 text-sm"
+        icon={<IconSearch size={16} />}
+        className="max-w-xs"
       />
       <DataTable
         data={query.data?.items ?? []}

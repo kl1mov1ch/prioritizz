@@ -124,25 +124,18 @@ export function useT(): TFunction {
   return useI18n().t;
 }
 
-/** Segmented EN / RU switch. */
+/** iOS-style segmented EN / RU switch. Relies on the `.segmented` class from @prioritizz/ui styles. */
 export function LanguageToggle({ className }: { className?: string }) {
   const { locale, setLocale } = useI18n();
   return (
-    <div
-      className={'inline-flex overflow-hidden rounded-md border text-xs font-medium ' + (className ?? '')}
-      role="group"
-      aria-label="Language"
-    >
+    <div className={'segmented ' + (className ?? '')} role="group" aria-label="Language">
       {LOCALES.map((l) => (
         <button
           key={l}
           type="button"
           onClick={() => setLocale(l)}
+          data-active={locale === l}
           aria-pressed={locale === l}
-          className={
-            'px-2.5 py-1.5 transition-colors ' +
-            (locale === l ? 'bg-primary text-primary-foreground' : 'hover:bg-accent')
-          }
         >
           {LOCALE_LABELS[l]}
         </button>

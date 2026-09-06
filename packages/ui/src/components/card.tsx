@@ -1,15 +1,17 @@
 import * as React from 'react';
 import { cn } from '../cn.js';
 
-export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn('rounded-lg border bg-card text-card-foreground shadow-sm', className)}
-      {...props}
-    />
-  ),
-);
+/** Frosted glass panel — the default surface for content. */
+export const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { flush?: boolean }
+>(({ className, flush, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn('glass rounded-2xl text-card-foreground', !flush && 'p-4', className)}
+    {...props}
+  />
+));
 Card.displayName = 'Card';
 
 export const CardHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
@@ -17,7 +19,7 @@ export const CardHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDiv
 );
 
 export const CardTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-  <h3 className={cn('text-lg font-semibold leading-none tracking-tight', className)} {...props} />
+  <h3 className={cn('text-base font-semibold leading-tight tracking-tight', className)} {...props} />
 );
 
 export const CardDescription = ({

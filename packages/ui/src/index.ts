@@ -3,5 +3,7 @@ export * from './components/button.js';
 export * from './components/card.js';
 export * from './components/badge.js';
 export * from './components/states.js';
+export * from './components/input.js';
 export * from './format.js';
 export * from './theme.js';
+export * from './icons.js';

@@ -1,5 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, LoadingState, formatMoney, ThemeToggle } from '@prioritizz/ui';
+import {
+  Card,
+  LoadingState,
+  formatMoney,
+  ThemeToggle,
+  IconWallet,
+  IconSparkles,
+  IconGlobe,
+  IconSun,
+} from '@prioritizz/ui';
 import { useT, LanguageToggle } from '@prioritizz/i18n';
 import { api } from '../lib/api';
 import { useAuthStore } from '../lib/auth-store';
@@ -9,29 +18,44 @@ export default function ProfilePage() {
   const user = useAuthStore((s) => s.user);
   const wallet = useQuery({ queryKey: ['wallet'], queryFn: () => api.me.wallet() });
 
+  const initials =
+    `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase() || 'U';
+
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">{t('profile.title')}</h1>
+      <h1 className="text-2xl font-bold tracking-tight">{t('profile.title')}</h1>
 
-      <Card className="p-4">
-        <p className="font-medium">
-          {user?.firstName} {user?.lastName}
-        </p>
-        <p className="text-sm text-muted-foreground">@{user?.username ?? '—'}</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {t('profile.roles')}: {user?.roles.join(', ')}
-        </p>
+      <Card className="flex items-center gap-3">
+        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-brand-gradient text-lg font-bold text-primary-foreground shadow-glow">
+          {initials}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate font-semibold">
+            {user?.firstName} {user?.lastName}
+          </p>
+          <p className="truncate text-sm text-muted-foreground">@{user?.username ?? '—'}</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {(user?.roles ?? []).map((r) => (
+              <span key={r} className="chip !py-0.5 !text-[0.62rem]">
+                {r}
+              </span>
+            ))}
+          </div>
+        </div>
       </Card>
 
-      <Card className="p-4">
-        <p className="mb-2 text-sm font-medium">{t('profile.wallet')}</p>
+      <Card className="space-y-3">
+        <p className="flex items-center gap-2 text-sm font-semibold">
+          <IconWallet size={16} className="text-primary" /> {t('profile.wallet')}
+        </p>
         {wallet.isLoading ? (
           <LoadingState label={t('common.loading')} />
         ) : wallet.data ? (
-          <dl className="space-y-1 text-sm">
+          <dl className="space-y-2 text-sm">
             <Row
               k={t('profile.available')}
               v={formatMoney(wallet.data.available, wallet.data.currency)}
+              strong
             />
             <Row
               k={t('profile.pending')}
@@ -45,21 +69,27 @@ export default function ProfilePage() {
         ) : null}
       </Card>
 
-      <Card className="p-4">
-        <p className="mb-3 text-sm font-medium">{t('profile.settings')}</p>
+      <Card className="space-y-4">
+        <p className="text-sm font-semibold">{t('profile.settings')}</p>
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">{t('common.language')}</span>
+          <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <IconGlobe size={16} /> {t('common.language')}
+          </span>
           <LanguageToggle />
         </div>
-        <div className="mt-3 flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">{t('common.theme')}</span>
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <IconSun size={16} /> {t('common.theme')}
+          </span>
           <ThemeToggle labels={{ light: t('common.themeLight'), dark: t('common.themeDark') }} />
         </div>
       </Card>
 
       {!user?.isSeller && (
-        <Card className="p-4">
-          <p className="text-sm font-medium">{t('profile.becomeSeller')}</p>
+        <Card className="space-y-1">
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            <IconSparkles size={16} className="text-primary" /> {t('profile.becomeSeller')}
+          </p>
           <p className="text-sm text-muted-foreground">{t('profile.becomeSellerDesc')}</p>
         </Card>
       )}
@@ -67,11 +97,11 @@ export default function ProfilePage() {
   );
 }
 
-function Row({ k, v }: { k: string; v: string }) {
+function Row({ k, v, strong }: { k: string; v: string; strong?: boolean }) {
   return (
-    <div className="flex justify-between">
+    <div className="flex items-center justify-between">
       <dt className="text-muted-foreground">{k}</dt>
-      <dd>{v}</dd>
+      <dd className={strong ? 'text-base font-bold' : 'font-medium'}>{v}</dd>
     </div>
   );
 }

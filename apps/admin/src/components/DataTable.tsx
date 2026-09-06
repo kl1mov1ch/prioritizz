@@ -1,5 +1,10 @@
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table';
-import { LoadingState, EmptyState } from '@prioritizz/ui';
+import {
+  LoadingState,
+  EmptyState,
+  IconChevronLeft,
+  IconChevronRight,
+} from '@prioritizz/ui';
 import { useT } from '@prioritizz/i18n';
 
 interface Props<T> {
@@ -13,15 +18,7 @@ interface Props<T> {
 }
 
 /** Server-driven table: parent owns pagination/filter/sort state. */
-export function DataTable<T>({
-  data,
-  columns,
-  isLoading,
-  page,
-  pageSize,
-  total,
-  onPage,
-}: Props<T>) {
+export function DataTable<T>({ data, columns, isLoading, page, pageSize, total, onPage }: Props<T>) {
   const t = useT();
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -31,13 +28,13 @@ export function DataTable<T>({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="glass overflow-x-auto rounded-2xl">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-left">
+          <thead className="border-b hairline text-left text-xs uppercase tracking-wide text-muted-foreground">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((h) => (
-                  <th key={h.id} className="px-3 py-2 font-medium">
+                  <th key={h.id} className="px-4 py-3 font-semibold">
                     {flexRender(h.column.columnDef.header, h.getContext())}
                   </th>
                 ))}
@@ -46,9 +43,12 @@ export function DataTable<T>({
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-t">
+              <tr
+                key={row.id}
+                className="border-b hairline transition-colors last:border-0 hover:bg-[hsl(var(--glass-bg))]"
+              >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-3 py-2">
+                  <td key={cell.id} className="px-4 py-3">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
@@ -63,18 +63,20 @@ export function DataTable<T>({
         </span>
         <div className="flex gap-2">
           <button
-            className="rounded border px-2 py-1 disabled:opacity-50"
+            className="glass inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors hover:bg-[hsl(var(--glass-bg-strong))] disabled:opacity-40"
             disabled={page <= 1}
+            aria-label={t('admin.prev')}
             onClick={() => onPage(page - 1)}
           >
-            {t('admin.prev')}
+            <IconChevronLeft size={16} />
           </button>
           <button
-            className="rounded border px-2 py-1 disabled:opacity-50"
+            className="glass inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors hover:bg-[hsl(var(--glass-bg-strong))] disabled:opacity-40"
             disabled={page >= totalPages}
+            aria-label={t('admin.next')}
             onClick={() => onPage(page + 1)}
           >
-            {t('admin.next')}
+            <IconChevronRight size={16} />
           </button>
         </div>
       </div>
