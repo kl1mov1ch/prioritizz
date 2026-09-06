@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Badge, Card, EmptyState, ErrorState, LoadingState, formatMoney } from '@prioritizz/ui';
+import { useT } from '@prioritizz/i18n';
 import { api } from '../lib/api';
 
 export default function CatalogPage() {
+  const t = useT();
   const [q, setQ] = useState('');
   const [categoryId, setCategoryId] = useState<string | undefined>();
 
@@ -20,14 +22,14 @@ export default function CatalogPage() {
   return (
     <div className="space-y-4">
       <header className="space-y-1">
-        <h1 className="text-xl font-semibold">Prioritizz</h1>
-        <p className="text-sm text-muted-foreground">Безопасные сделки внутри Telegram</p>
+        <h1 className="text-xl font-semibold">{t('common.appName')}</h1>
+        <p className="text-sm text-muted-foreground">{t('common.tagline')}</p>
       </header>
 
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Поиск услуг…"
+        placeholder={t('catalog.searchPlaceholder')}
         className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
       />
 
@@ -36,7 +38,7 @@ export default function CatalogPage() {
           onClick={() => setCategoryId(undefined)}
           className={`shrink-0 rounded-full border px-3 py-1 text-xs ${!categoryId ? 'bg-primary text-primary-foreground' : ''}`}
         >
-          Все
+          {t('common.all')}
         </button>
         {(categories.data ?? []).map((c) => (
           <button
@@ -49,10 +51,12 @@ export default function CatalogPage() {
         ))}
       </div>
 
-      {services.isLoading && <LoadingState />}
-      {services.isError && <ErrorState onRetry={() => services.refetch()} />}
+      {services.isLoading && <LoadingState label={t('common.loading')} />}
+      {services.isError && (
+        <ErrorState title={t('common.somethingWrong')} onRetry={() => services.refetch()} />
+      )}
       {services.data?.items.length === 0 && (
-        <EmptyState title="Ничего не найдено" description="Попробуйте изменить фильтры." />
+        <EmptyState title={t('catalog.emptyTitle')} description={t('catalog.emptyDesc')} />
       )}
 
       <ul className="space-y-3">
@@ -66,13 +70,17 @@ export default function CatalogPage() {
                     <p className="line-clamp-2 text-sm text-muted-foreground">{s.summary}</p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       <Badge variant="secondary">{s.category.name}</Badge>
-                      {s.seller.isVerified && <Badge variant="success">Проверенный</Badge>}
+                      {s.seller.isVerified && (
+                        <Badge variant="success">{t('catalog.verified')}</Badge>
+                      )}
                       <Badge variant="outline">★ {s.ratingAvg.toFixed(1)}</Badge>
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="font-semibold">{formatMoney(s.basePriceAmount, s.currency)}</p>
-                    <p className="text-xs text-muted-foreground">{s.slaHours} ч</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t('catalog.hours', { n: s.slaHours })}
+                    </p>
                   </div>
                 </div>
               </Card>

@@ -9,21 +9,23 @@ import {
   statusTone,
   timeAgo,
 } from '@prioritizz/ui';
+import { useT } from '@prioritizz/i18n';
 import { api } from '../lib/api';
 
 export default function OrdersPage() {
+  const t = useT();
   const orders = useQuery({
     queryKey: ['orders', 'buyer'],
     queryFn: () => api.orders.list({ role: 'buyer', pageSize: 30 }),
   });
 
-  if (orders.isLoading) return <LoadingState />;
+  if (orders.isLoading) return <LoadingState label={t('common.loading')} />;
   if (!orders.data?.items.length)
-    return <EmptyState title="Пока нет сделок" description="Выберите услугу в каталоге." />;
+    return <EmptyState title={t('orders.emptyTitle')} description={t('orders.emptyDesc')} />;
 
   return (
     <div className="space-y-3">
-      <h1 className="text-xl font-semibold">Мои сделки</h1>
+      <h1 className="text-xl font-semibold">{t('orders.myDeals')}</h1>
       {orders.data.items.map((o) => (
         <Link key={o.id} to={`/orders/${o.id}`}>
           <Card className="p-4">

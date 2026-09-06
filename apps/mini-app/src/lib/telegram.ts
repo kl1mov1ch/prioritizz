@@ -5,7 +5,7 @@
  */
 interface TgWebApp {
   initData: string;
-  initDataUnsafe: Record<string, unknown>;
+  initDataUnsafe: { user?: { language_code?: string } } & Record<string, unknown>;
   colorScheme: 'light' | 'dark';
   themeParams: Record<string, string>;
   expand(): void;
@@ -39,7 +39,19 @@ export function initTelegram(): void {
   wa.ready();
   wa.expand();
   wa.enableClosingConfirmation();
-  document.documentElement.dataset.theme = wa.colorScheme;
+  // Theme is owned by <ThemeProvider>; it seeds from getTelegramColorScheme().
+}
+
+/** Telegram's current colour scheme, or null when running outside Telegram. */
+export function getTelegramColorScheme(): 'light' | 'dark' | null {
+  return getWebApp()?.colorScheme ?? null;
+}
+
+/** 'ru' if the Telegram client language starts with ru, else 'en', else null. */
+export function getTelegramLocale(): 'en' | 'ru' | null {
+  const code = getWebApp()?.initDataUnsafe?.user?.language_code;
+  if (!code) return null;
+  return code.toLowerCase().startsWith('ru') ? 'ru' : 'en';
 }
 
 /** initData string for the /auth/telegram call. Empty when opened outside Telegram (dev). */

@@ -2,10 +2,12 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@prioritizz/ui';
+import { useT } from '@prioritizz/i18n';
 import { api } from '../lib/api';
 import { DataTable } from '../components/DataTable';
 
 export default function UsersPage() {
+  const t = useT();
   const [page, setPage] = useState(1);
   const [q, setQ] = useState('');
   const query = useQuery({
@@ -15,10 +17,10 @@ export default function UsersPage() {
 
   const columns = useMemo<ColumnDef<any, unknown>[]>(
     () => [
-      { header: 'User', accessorFn: (r) => r.username ?? r.firstName ?? r.id, id: 'name' },
-      { header: 'Telegram ID', accessorKey: 'telegramId' },
+      { header: t('admin.user'), accessorFn: (r) => r.username ?? r.firstName ?? r.id, id: 'name' },
+      { header: t('admin.telegramId'), accessorKey: 'telegramId' },
       {
-        header: 'Roles',
+        header: t('admin.rolesCol'),
         cell: ({ row }) => (
           <div className="flex gap-1">
             {row.original.roles.map((r: string) => (
@@ -30,7 +32,7 @@ export default function UsersPage() {
         ),
       },
       {
-        header: 'Status',
+        header: t('admin.statusCol'),
         cell: ({ row }) => (
           <Badge variant={row.original.status === 'ACTIVE' ? 'success' : 'destructive'}>
             {row.original.status}
@@ -38,19 +40,19 @@ export default function UsersPage() {
         ),
       },
     ],
-    [],
+    [t],
   );
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Users</h1>
+      <h1 className="text-xl font-semibold">{t('nav.users')}</h1>
       <input
         value={q}
         onChange={(e) => {
           setPage(1);
           setQ(e.target.value);
         }}
-        placeholder="Search username / id"
+        placeholder={t('admin.searchUsers')}
         className="w-64 rounded-md border bg-background px-3 py-2 text-sm"
       />
       <DataTable

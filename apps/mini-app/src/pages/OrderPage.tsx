@@ -10,9 +10,11 @@ import {
   formatDateTime,
   statusTone,
 } from '@prioritizz/ui';
+import { useT } from '@prioritizz/i18n';
 import { api } from '../lib/api';
 
 export default function OrderPage() {
+  const t = useT();
   const { id = '' } = useParams();
   const qc = useQueryClient();
 
@@ -27,8 +29,9 @@ export default function OrderPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['order', id] }),
   });
 
-  if (order.isLoading) return <LoadingState />;
-  if (order.isError || !order.data) return <ErrorState onRetry={() => order.refetch()} />;
+  if (order.isLoading) return <LoadingState label={t('common.loading')} />;
+  if (order.isError || !order.data)
+    return <ErrorState title={t('common.somethingWrong')} onRetry={() => order.refetch()} />;
 
   const o = order.data;
 
@@ -42,16 +45,18 @@ export default function OrderPage() {
       <Card className="p-4">
         <p className="font-medium">{o.service.title}</p>
         <dl className="mt-2 space-y-1 text-sm">
-          <Row k="Сумма" v={formatMoney(o.totalAmount, o.currency)} />
-          <Row k="Оплата" v={o.paymentStatus} />
-          <Row k="Гарантия (escrow)" v={o.escrowStatus} />
-          {o.autoReleaseAt && <Row k="Авто-подтверждение" v={formatDateTime(o.autoReleaseAt)} />}
+          <Row k={t('orders.amount')} v={formatMoney(o.totalAmount, o.currency)} />
+          <Row k={t('orders.payment')} v={o.paymentStatus} />
+          <Row k={t('orders.escrow')} v={o.escrowStatus} />
+          {o.autoReleaseAt && (
+            <Row k={t('orders.autoConfirm')} v={formatDateTime(o.autoReleaseAt)} />
+          )}
         </dl>
       </Card>
 
       {o.deliveryPayload && (
         <Card className="p-4">
-          <p className="text-sm font-medium">Результат</p>
+          <p className="text-sm font-medium">{t('orders.result')}</p>
           <pre className="mt-1 whitespace-pre-wrap break-all rounded bg-muted p-2 text-xs">
             {o.deliveryPayload}
           </pre>
@@ -60,12 +65,12 @@ export default function OrderPage() {
 
       {o.status === 'DELIVERED' && (
         <Button size="block" loading={confirm.isPending} onClick={() => confirm.mutate()}>
-          Подтвердить получение
+          {t('orders.confirmReceipt')}
         </Button>
       )}
 
       <Card className="p-4">
-        <p className="mb-2 text-sm font-medium">История</p>
+        <p className="mb-2 text-sm font-medium">{t('orders.history')}</p>
         <ol className="space-y-2">
           {(timeline.data ?? []).map((e) => (
             <li key={e.id} className="text-xs text-muted-foreground">

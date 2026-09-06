@@ -1,5 +1,6 @@
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table';
 import { LoadingState, EmptyState } from '@prioritizz/ui';
+import { useT } from '@prioritizz/i18n';
 
 interface Props<T> {
   data: T[];
@@ -21,11 +22,12 @@ export function DataTable<T>({
   total,
   onPage,
 }: Props<T>) {
+  const t = useT();
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  if (isLoading) return <LoadingState />;
-  if (!data.length) return <EmptyState title="No rows" />;
+  if (isLoading) return <LoadingState label={t('common.loading')} />;
+  if (!data.length) return <EmptyState title={t('common.notFound')} />;
 
   return (
     <div className="space-y-3">
@@ -57,7 +59,7 @@ export function DataTable<T>({
       </div>
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">
-          {total} rows · page {page}/{totalPages}
+          {t('admin.rows', { total, page, pages: totalPages })}
         </span>
         <div className="flex gap-2">
           <button
@@ -65,14 +67,14 @@ export function DataTable<T>({
             disabled={page <= 1}
             onClick={() => onPage(page - 1)}
           >
-            Prev
+            {t('admin.prev')}
           </button>
           <button
             className="rounded border px-2 py-1 disabled:opacity-50"
             disabled={page >= totalPages}
             onClick={() => onPage(page + 1)}
           >
-            Next
+            {t('admin.next')}
           </button>
         </div>
       </div>
