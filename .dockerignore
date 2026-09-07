@@ -1,0 +1,15 @@
+**/node_modules
+**/dist
+**/dist-tsc
+**/.turbo
+**/*.tsbuildinfo
+**/coverage
+.git
+.env
+.env.*
+!.env.example
+*.log
+.vite
+playwright-report
+test-results
+scratchpad

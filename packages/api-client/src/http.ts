@@ -44,7 +44,17 @@ export interface RequestOptions {
 }
 
 function buildUrl(baseUrl: string, path: string, query?: RequestOptions['query']): string {
-  const url = new URL(path.replace(/^\//, ''), baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+  // Allow a relative base like "/api/v1" (deployed behind a reverse proxy on
+  // the same origin) — resolve it against the current page. `new URL` needs an
+  // absolute base, so an origin-relative string would otherwise throw.
+  let resolvedBase = baseUrl;
+  if (/^\/(?!\/)/.test(baseUrl) && typeof window !== 'undefined') {
+    resolvedBase = window.location.origin + baseUrl;
+  }
+  const url = new URL(
+    path.replace(/^\//, ''),
+    resolvedBase.endsWith('/') ? resolvedBase : `${resolvedBase}/`,
+  );
   if (query) {
     for (const [k, v] of Object.entries(query)) {
       if (v !== undefined && v !== null) url.searchParams.set(k, String(v));

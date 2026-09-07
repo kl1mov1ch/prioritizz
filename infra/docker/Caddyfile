@@ -1,0 +1,46 @@
+# Prioritizz — automatic HTTPS via Let's Encrypt for a domain-less server.
+# 185.195.24.236.sslip.io resolves to 185.195.24.236 (public wildcard DNS),
+# so Let's Encrypt WILL issue for it — a self-signed cert on a bare IP would
+# be rejected by Telegram's WebView.
+#
+# {$PUBLIC_HOST} / {$ADMIN_HOST} come from docker-compose.prod.yml.
+
+{
+	# ACME account contact; override with CADDY_ACME_EMAIL in .env
+	email {$CADDY_ACME_EMAIL:admin@example.com}
+}
+
+{$PUBLIC_HOST} {
+	encode zstd gzip
+
+	# API — same origin as the Mini App so the browser needs no CORS
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+
+	# Object storage (MinIO) proxied so phones never need to reach :9000
+	handle_path /media/* {
+		reverse_proxy minio:9000
+	}
+
+	# Mini App SPA
+	handle {
+		root * /srv/mini-app
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+{$ADMIN_HOST} {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+
+	handle {
+		root * /srv/admin
+		try_files {path} /index.html
+		file_server
+	}
+}
