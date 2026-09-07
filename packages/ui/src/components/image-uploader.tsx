@@ -43,7 +43,7 @@ export function ImageUploader({
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {items.map((it) => (
           <div key={it.id} className="relative aspect-square overflow-hidden rounded-xl bg-grouped">
-            <img src={it.url} alt="" className="h-full w-full object-cover" />
+            <img src={it.url} alt="" loading="lazy" className="h-full w-full object-cover" />
 
             {it.status !== 'ready' && (
               <span className="absolute inset-0 grid place-items-center bg-black/45 text-white">

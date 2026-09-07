@@ -103,6 +103,9 @@ export default function SellerListingsPage() {
                   <img
                     src={s.media[0].url}
                     alt=""
+                    width={64}
+                    height={64}
+                    loading="lazy"
                     className="h-16 w-16 shrink-0 rounded-xl object-cover"
                   />
                 ) : (

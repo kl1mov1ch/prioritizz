@@ -56,20 +56,31 @@ export const ChatDivider = ({ label }: { label: string }) => (
   </div>
 );
 
-/** Scroll container that sticks to the newest message. */
+/**
+ * Scroll container that sticks to the newest message. `count` is the current
+ * message count — the effect re-runs (and scrolls) only when it changes, not on
+ * every render, so it never fights a user scrolling up to read history.
+ */
 export function MessageList({
   children,
+  count,
   className,
 }: {
   children: React.ReactNode;
+  count: number;
   className?: string;
 }) {
   const endRef = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
-  });
+  }, [count]);
   return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
+    <div
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions"
+      className={cn('flex flex-col gap-1.5', className)}
+    >
       {children}
       <div ref={endRef} />
     </div>

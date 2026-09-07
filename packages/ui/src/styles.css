@@ -140,7 +140,33 @@
 
   html {
     -webkit-tap-highlight-color: transparent;
+    /* Kill the 300ms tap delay; every interactive target is already ≥44px. */
+    touch-action: manipulation;
     font-optical-sizing: auto;
+  }
+
+  /* One place to honour the OS "reduce motion" setting for the whole app —
+     covers Tailwind's animate-ping / animate-pulse / fade-in / slide-up and
+     every transition, so individual components don't each have to guard. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+    body::before {
+      animation: none !important;
+    }
+  }
+
+  /* Fallback keyboard-focus ring for interactive elements that don't set their
+     own (components that do — .field, buttons — override via focus-visible:ring). */
+  :where(a, button, [role='button'], [tabindex]):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
 
   body {

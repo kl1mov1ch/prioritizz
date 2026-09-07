@@ -101,7 +101,7 @@ export default function ChatPage() {
         {items.length === 0 ? (
           <p className="py-10 text-center text-subhead text-subtle">{t('chat.empty')}</p>
         ) : (
-          <MessageList>
+          <MessageList count={items.length}>
             {items.map((m: ChatMessage, i) => {
               const prev = items[i - 1];
               const showDay =
@@ -141,6 +141,7 @@ export default function ChatPage() {
           }}
           rows={1}
           placeholder={t('chat.placeholder')}
+          aria-label={t('chat.placeholder')}
           className="field max-h-28 min-h-touch flex-1 resize-none py-2.5"
         />
         <button

@@ -27,6 +27,8 @@ export function Sheet({
   className,
   closeLabel = 'Close',
 }: SheetProps) {
+  const panelRef = React.useRef<HTMLDivElement>(null);
+
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -36,9 +38,13 @@ export function Sheet({
     // Lock the page behind the sheet without losing the scroll position.
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    // Move focus into the sheet, and hand it back to the trigger on close.
+    const restoreTo = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
+      restoreTo?.focus?.();
     };
   }, [open, onClose]);
 
@@ -49,11 +55,20 @@ export function Sheet({
       className="fixed inset-0 z-50 flex items-end justify-center"
       role="dialog"
       aria-modal="true"
+      aria-label={title}
     >
-      <div className="absolute inset-0 animate-fade-in bg-black/40" onClick={onClose} aria-hidden />
+      <button
+        type="button"
+        aria-label={closeLabel}
+        tabIndex={-1}
+        className="absolute inset-0 animate-fade-in cursor-default bg-black/40"
+        onClick={onClose}
+      />
       <div
+        ref={panelRef}
+        tabIndex={-1}
         className={cn(
-          'material-thick safe-b relative flex max-h-[88vh] w-full max-w-lg animate-slide-up flex-col rounded-t-[20px]',
+          'material-thick safe-b relative flex max-h-[88vh] w-full max-w-lg animate-slide-up flex-col overflow-hidden rounded-t-[20px] outline-none',
           className,
         )}
       >
@@ -76,7 +91,9 @@ export function Sheet({
           </div>
         )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
+          {children}
+        </div>
 
         {footer && <div className="shrink-0 border-t border-separator px-4 py-3">{footer}</div>}
       </div>

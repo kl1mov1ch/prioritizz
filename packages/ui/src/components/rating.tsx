@@ -46,8 +46,9 @@ export interface RatingInputProps {
 }
 
 /**
- * Interactive whole-star picker. Radio semantics so it is keyboard- and
- * screen-reader-navigable, unlike a row of bare buttons.
+ * Interactive whole-star picker with radiogroup semantics: exactly one star is
+ * `aria-checked`, only the selected star is in the tab order, and Left/Right
+ * (Down/Up) move the selection — the pattern a screen reader expects.
  */
 export function RatingInput({
   value,
@@ -58,30 +59,47 @@ export function RatingInput({
   label,
   disabled,
 }: RatingInputProps) {
+  const step = (delta: number) => {
+    if (disabled) return;
+    const next = Math.min(max, Math.max(1, (value || 0) + delta));
+    if (next !== value) onChange(next);
+  };
+
   return (
     <span
       role="radiogroup"
       aria-label={label}
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          step(-1);
+        } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          step(1);
+        }
+      }}
       className={cn('inline-flex items-center gap-1', className)}
     >
       {Array.from({ length: max }, (_, i) => {
         const star = i + 1;
-        const active = star <= value;
+        const filled = star <= value;
+        const selected = star === value;
         return (
           <button
             key={star}
             type="button"
             role="radio"
-            aria-checked={active && star === value}
+            aria-checked={selected}
             aria-label={String(star)}
+            tabIndex={selected || (value === 0 && star === 1) ? 0 : -1}
             disabled={disabled}
             onClick={() => onChange(star)}
             className={cn(
               'grid min-h-touch min-w-touch place-items-center rounded-lg transition-transform duration-150 active:scale-90 disabled:opacity-40',
-              active ? 'text-tint-yellow' : 'text-subtle',
+              filled ? 'text-tint-yellow' : 'text-subtle',
             )}
           >
-            <IconStar size={size} filled={active} />
+            <IconStar size={size} filled={filled} />
           </button>
         );
       })}
