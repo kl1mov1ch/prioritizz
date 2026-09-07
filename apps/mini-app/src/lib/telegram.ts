@@ -41,7 +41,11 @@ interface TgWebApp {
     showProgress(): void;
     hideProgress(): void;
   };
+  openInvoice(url: string, callback?: (status: InvoiceStatus) => void): void;
+  openTelegramLink(url: string): void;
 }
+
+export type InvoiceStatus = 'paid' | 'cancelled' | 'failed' | 'pending';
 
 declare global {
   interface Window {
@@ -85,6 +89,27 @@ export function haptic(style: 'light' | 'medium' | 'heavy' = 'light'): void {
 
 export function notify(type: 'error' | 'success' | 'warning'): void {
   getWebApp()?.HapticFeedback?.notificationOccurred(type);
+}
+
+/** True when a real Telegram WebApp host is present (has initData). */
+export function inTelegram(): boolean {
+  return !!getWebApp()?.initData;
+}
+
+/**
+ * Open a Telegram Stars invoice link and resolve once the user closes the
+ * payment sheet. `paid` means the charge went through; the order still needs a
+ * moment for the bot's successful_payment → API webhook to land.
+ */
+export function openInvoice(url: string): Promise<InvoiceStatus> {
+  return new Promise((resolve) => {
+    const wa = getWebApp();
+    if (!wa?.openInvoice) {
+      resolve('failed');
+      return;
+    }
+    wa.openInvoice(url, (status) => resolve(status));
+  });
 }
 
 /**

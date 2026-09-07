@@ -153,7 +153,26 @@ export function createApiClient(options: HttpClientOptions) {
       open: (input: OpenDisputeInput, idempotencyKey: string) =>
         http.post<Dispute>('disputes', input, { idempotencyKey }),
       get: (id: string) => http.get<Dispute>(`disputes/${id}`),
-      message: (id: string, body: string) => http.post<void>(`disputes/${id}/messages`, { body }),
+      messages: (id: string) =>
+        http.get<
+          Array<{ id: string; authorType: string; body: string; mine: boolean; createdAt: string }>
+        >(`disputes/${id}/messages`),
+      message: (id: string, body: string) => http.post<Dispute>(`disputes/${id}/messages`, { body }),
+    },
+
+    notifications: {
+      list: () =>
+        http.get<
+          Array<{
+            id: string;
+            template: string;
+            title: string | null;
+            body: string | null;
+            readAt: string | null;
+            createdAt: string;
+          }>
+        >('me/notifications'),
+      markRead: () => http.post<{ read: number }>('me/notifications/read'),
     },
 
     subscriptions: {
@@ -174,10 +193,18 @@ export function createApiClient(options: HttpClientOptions) {
     admin: {
       dashboard: (range: string) =>
         http.get<DashboardMetrics>('admin/dashboard', { query: { range } }),
-      users: (query: Q) => http.get<Paginated<UserProfile>>('admin/users', { query }),
+      users: (query: Q) => http.get<Paginated<Record<string, unknown>>>('admin/users', { query }),
+      updateUser: (
+        id: string,
+        input: { status?: string; rolesAdd?: string[]; rolesRemove?: string[]; reason: string },
+      ) => http.patch<Record<string, unknown>>(`admin/users/${id}`, input),
+      moderationQueue: (query: Q) =>
+        http.get<Paginated<Record<string, unknown>>>('admin/services', { query }),
       moderateService: (id: string, input: ModerationDecisionInput) =>
-        http.post<Service>(`admin/services/${id}/moderate`, input),
+        http.post<Record<string, unknown>>(`admin/services/${id}/moderate`, input),
       disputes: (query: Q) => http.get<Paginated<Dispute>>('admin/disputes', { query }),
+      disputeThread: (id: string) =>
+        http.get<Array<Record<string, unknown>>>(`admin/disputes/${id}/thread`),
       resolveDispute: (id: string, input: ResolveDisputeInput) =>
         http.post<Dispute>(`admin/disputes/${id}/resolve`, input),
       payouts: (query: Q) => http.get<Paginated<Payout>>('admin/payouts', { query }),
@@ -188,13 +215,12 @@ export function createApiClient(options: HttpClientOptions) {
         id
           ? http.put<CommissionRule>(`admin/commission-rules/${id}`, input)
           : http.post<CommissionRule>('admin/commission-rules', input),
-      categories: {
-        list: () => http.get<Category[]>('admin/categories'),
-        upsert: (input: CategoryUpsertInput, id?: string) =>
-          id
-            ? http.put<Category>(`admin/categories/${id}`, input)
-            : http.post<Category>('admin/categories', input),
-      },
+      disableCommissionRule: (id: string) =>
+        http.delete<{ ok: boolean }>(`admin/commission-rules/${id}`),
+      auditLog: (query: Q) => http.get<Paginated<Record<string, unknown>>>('admin/audit-logs', { query }),
+      featureFlags: () => http.get<Array<Record<string, unknown>>>('admin/feature-flags'),
+      updateFeatureFlag: (key: string, patch: Record<string, unknown>) =>
+        http.put<Record<string, unknown>>(`admin/feature-flags/${key}`, patch),
     },
   };
 }
