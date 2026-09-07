@@ -96,10 +96,42 @@ export const orderCancelSchema = z.object({
 });
 
 export const orderMessageSchema = z.object({
-  body: z.string().min(1).max(2000),
+  body: z.string().trim().min(1).max(2000),
   attachmentIds: z.array(idSchema).max(5).default([]),
 });
 export type OrderMessageInput = z.infer<typeof orderMessageSchema>;
+
+/** One chat message as returned to a participant. */
+export const chatMessageSchema = z.object({
+  id: idSchema,
+  orderId: idSchema,
+  body: z.string(),
+  authorId: idSchema,
+  authorType: z.enum(['BUYER', 'SELLER', 'SYSTEM']),
+  /** True when the current viewer sent it — the client aligns the bubble by this. */
+  mine: z.boolean(),
+  readAt: z.string().datetime().nullable(),
+  attachments: z.array(z.object({ id: idSchema, url: z.string().url(), kind: z.string() })),
+  createdAt: z.string().datetime(),
+});
+export type ChatMessage = z.infer<typeof chatMessageSchema>;
+
+export const chatListQuerySchema = z.object({
+  /** ISO timestamp; return messages strictly after it (for polling). */
+  after: z.string().datetime().optional(),
+  /** Opaque id cursor for older-page fetches. */
+  before: idSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+export type ChatListQuery = z.infer<typeof chatListQuerySchema>;
+
+export const chatPageSchema = z.object({
+  items: z.array(chatMessageSchema),
+  /** Peer messages still unread by the viewer, for a badge. */
+  unread: z.number().int(),
+  hasMore: z.boolean(),
+});
+export type ChatPage = z.infer<typeof chatPageSchema>;
 
 // ---- payment intent ----
 export const createPaymentIntentSchema = z.object({

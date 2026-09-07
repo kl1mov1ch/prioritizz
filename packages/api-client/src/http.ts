@@ -53,6 +53,11 @@ function buildUrl(baseUrl: string, path: string, query?: RequestOptions['query']
   return url.toString();
 }
 
+function serializeBody(body: unknown, isForm: boolean): BodyInit | undefined {
+  if (body === undefined) return undefined;
+  return isForm ? (body as FormData) : JSON.stringify(body);
+}
+
 export class HttpClient {
   private refreshing: Promise<string | null> | null = null;
 
@@ -65,7 +70,10 @@ export class HttpClient {
       ...this.opts.defaultHeaders?.(),
       ...options.headers,
     };
-    if (options.body !== undefined) headers['content-type'] = 'application/json';
+    // FormData must keep the browser-generated multipart boundary, so never
+    // force a content-type on it.
+    const isForm = typeof FormData !== 'undefined' && options.body instanceof FormData;
+    if (options.body !== undefined && !isForm) headers['content-type'] = 'application/json';
     if (options.idempotencyKey) headers['idempotency-key'] = options.idempotencyKey;
 
     if (!options.skipAuth && this.opts.tokenStore) {
@@ -77,7 +85,7 @@ export class HttpClient {
     let res = await doFetch(url, {
       method,
       headers,
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      body: serializeBody(options.body, isForm),
       signal: options.signal,
     });
 
@@ -88,7 +96,7 @@ export class HttpClient {
         res = await doFetch(url, {
           method,
           headers,
-          body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+          body: serializeBody(options.body, isForm),
           signal: options.signal,
         });
       }

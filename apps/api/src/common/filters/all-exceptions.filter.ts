@@ -43,6 +43,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
           traceId,
         };
       }
+    } else if (isZodError(exception)) {
+      // Raw ZodError from a controller-level `schema.parse(query)` (not routed
+      // through the pipe). Duck-typed so a differently-resolved zod copy still
+      // maps to 422 instead of 500.
+      status = HttpStatus.UNPROCESSABLE_ENTITY;
+      body = {
+        code: ERROR_CODES.VALIDATION_FAILED,
+        message: 'Request validation failed',
+        details: exception.flatten(),
+        traceId,
+      };
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       if (exception.code === 'P2025') {
         status = HttpStatus.NOT_FOUND;
@@ -74,6 +85,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     res.status(status).json(body);
   }
+}
+
+function isZodError(e: unknown): e is { flatten: () => unknown; name: string } {
+  return (
+    !!e &&
+    typeof e === 'object' &&
+    (e as { name?: string }).name === 'ZodError' &&
+    typeof (e as { flatten?: unknown }).flatten === 'function'
+  );
 }
 
 function mapHttpStatusToCode(status: number): string {

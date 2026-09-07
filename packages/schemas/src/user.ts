@@ -3,7 +3,21 @@ import { SELLER_TIER, USER_STATUS } from '@prioritizz/constants';
 import { idSchema, moneySchema, timestampsSchema } from './common.js';
 import { authUserSchema } from './auth.js';
 
+/** Notification channel + per-event toggles. All optional; unset means default-on. */
+export const notificationPrefsSchema = z
+  .object({
+    telegram: z.boolean(),
+    email: z.boolean(),
+    orderUpdates: z.boolean(),
+    chatMessages: z.boolean(),
+    marketing: z.boolean(),
+  })
+  .partial();
+export type NotificationPrefs = z.infer<typeof notificationPrefsSchema>;
+
 export const userProfileSchema = authUserSchema.merge(timestampsSchema).extend({
+  contactEmail: z.string().email().nullable(),
+  notificationPrefs: notificationPrefsSchema,
   buyerProfile: z
     .object({
       completedOrders: z.number().int(),
@@ -27,12 +41,20 @@ export const userProfileSchema = authUserSchema.merge(timestampsSchema).extend({
 export type UserProfile = z.infer<typeof userProfileSchema>;
 
 export const updateMeSchema = z.object({
+  /** Display-name overrides — Telegram values seed these, the user can change them. */
+  firstName: z.string().trim().min(1).max(64).optional(),
+  lastName: z.string().trim().max(64).nullable().optional(),
   languageCode: z.string().min(2).max(8).optional(),
-  contactEmail: z.string().email().optional(),
+  contactEmail: z.string().email().nullable().optional(),
+  /** Confirmed USER-owned attachment id to use as the avatar. Null clears it. */
+  avatarAttachmentId: idSchema.nullable().optional(),
   notificationPrefs: z
     .object({
       telegram: z.boolean(),
       email: z.boolean(),
+      orderUpdates: z.boolean(),
+      chatMessages: z.boolean(),
+      marketing: z.boolean(),
     })
     .partial()
     .optional(),

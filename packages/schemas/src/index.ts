@@ -2,6 +2,8 @@ export * from './common.js';
 export * from './auth.js';
 export * from './user.js';
 export * from './catalog.js';
+export * from './media.js';
+export * from './review.js';
 export * from './order.js';
 export * from './dispute.js';
 export * from './commission.js';

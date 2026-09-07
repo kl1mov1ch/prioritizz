@@ -9,7 +9,9 @@ import { IconSpinner } from '../icons.js';
  * No drop-shadows: depth comes from material layering.
  */
 const buttonVariants = cva(
-  'inline-flex select-none items-center justify-center gap-2 whitespace-nowrap font-sans font-semibold tracking-[-0.012em] transition-[background,color,opacity,transform] duration-150 ease-out active:scale-[0.975] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/[0.18] disabled:pointer-events-none disabled:opacity-40',
+  // max-w-full + min-w-0 + truncate: a long RU label shortens instead of
+  // pushing the button past its container.
+  'inline-flex max-w-full min-w-0 select-none items-center justify-center gap-2 overflow-hidden truncate whitespace-nowrap font-sans font-semibold tracking-[-0.012em] transition-[background,color,opacity,transform] duration-150 ease-out active:scale-[0.975] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/[0.18] disabled:pointer-events-none disabled:opacity-40',
   {
     variants: {
       variant: {
@@ -24,12 +26,14 @@ const buttonVariants = cva(
         plain: 'bg-transparent text-primary hover:bg-primary/[0.07] active:bg-primary/[0.12]',
         link: 'bg-transparent p-0 text-primary underline-offset-[3px] hover:underline',
       },
+      // Heights keep the 44px HIG touch target; only type and padding shrink so
+      // controls read compact on a phone instead of filling the row.
       size: {
         sm: 'min-h-dense rounded-[10px] px-3 text-footnote',
-        default: 'min-h-touch rounded-lg px-5 py-2.5 text-body md:min-h-[36px] md:text-subhead',
-        lg: 'min-h-[52px] rounded-[14px] px-6 text-title3',
-        icon: 'h-11 w-11 rounded-lg md:h-9 md:w-9',
-        block: 'min-h-touch w-full rounded-lg px-5 py-3 text-body',
+        default: 'min-h-touch rounded-lg px-4 py-2 text-subhead md:min-h-[36px]',
+        lg: 'min-h-[52px] rounded-[14px] px-5 text-body',
+        icon: 'h-11 w-11 shrink-0 rounded-lg md:h-9 md:w-9',
+        block: 'min-h-touch w-full rounded-lg px-4 py-2.5 text-body',
       },
     },
     defaultVariants: { variant: 'primary', size: 'default' },
@@ -37,7 +41,8 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'color'>,
+  extends
+    Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'color'>,
     VariantProps<typeof buttonVariants> {
   loading?: boolean;
 }

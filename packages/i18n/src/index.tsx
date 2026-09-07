@@ -9,24 +9,25 @@ export const LOCALE_LABELS: Record<Locale, string> = { en: 'EN', ru: 'RU' };
 const DICTS: Record<Locale, Messages> = { en, ru };
 
 /** Dotted key path into Messages, e.g. "catalog.searchPlaceholder". */
-type Join<K, P> = K extends string
-  ? P extends string
-    ? `${K}.${P}`
-    : never
-  : never;
+type Join<K, P> = K extends string ? (P extends string ? `${K}.${P}` : never) : never;
 type Paths<T> = {
   [K in keyof T]: T[K] extends string ? K : Join<K, Paths<T[K]>>;
 }[keyof T];
 export type MessageKey = Paths<Messages> & string;
 
-function resolve(dict: Messages, key: string): string {
+function lookup(dict: Messages, key: string): string | undefined {
   const val = key.split('.').reduce<unknown>((acc, part) => {
     if (acc && typeof acc === 'object' && part in (acc as Record<string, unknown>)) {
       return (acc as Record<string, unknown>)[part];
     }
     return undefined;
   }, dict);
-  return typeof val === 'string' ? val : key;
+  return typeof val === 'string' ? val : undefined;
+}
+
+/** Missing keys fall back to English, then to the key itself — never blank. */
+function resolve(locale: Locale, key: string): string {
+  return lookup(DICTS[locale] ?? en, key) ?? lookup(en, key) ?? key;
 }
 
 function interpolate(template: string, params?: Record<string, string | number>): string {
@@ -36,12 +37,29 @@ function interpolate(template: string, params?: Record<string, string | number>)
   );
 }
 
+const pluralRules: Partial<Record<Locale, Intl.PluralRules>> = {};
+function pluralCategory(locale: Locale, n: number): Intl.LDMLPluralRule {
+  pluralRules[locale] ??= new Intl.PluralRules(locale);
+  return pluralRules[locale]!.select(n);
+}
+
 export type TFunction = (key: MessageKey, params?: Record<string, string | number>) => string;
+/**
+ * Plural-aware lookup. `tp('reviews.count', n)` resolves `reviews.count_one` /
+ * `_few` / `_many` / `_other` per the locale's plural rules (Russian has three
+ * forms), falling back to `_other` then the bare key. `{count}` is injected.
+ */
+export type TPFunction = (
+  baseKey: string,
+  count: number,
+  params?: Record<string, string | number>,
+) => string;
 
 interface I18nContextValue {
   locale: Locale;
   setLocale: (l: Locale) => void;
   t: TFunction;
+  tp: TPFunction;
 }
 
 const I18nContext = React.createContext<I18nContextValue | null>(null);
@@ -103,12 +121,19 @@ export function I18nProvider({
   );
 
   const value = React.useMemo<I18nContextValue>(() => {
-    const dict = DICTS[locale] ?? en;
-    return {
-      locale,
-      setLocale,
-      t: (key, params) => interpolate(resolve(dict, key), params),
+    const t: TFunction = (key, params) => interpolate(resolve(locale, key), params);
+    const tp: TPFunction = (baseKey, count, params) => {
+      const cat = pluralCategory(locale, count);
+      const withCat =
+        lookup(DICTS[locale] ?? en, `${baseKey}_${cat}`) ?? lookup(en, `${baseKey}_${cat}`);
+      const template =
+        withCat ??
+        lookup(DICTS[locale] ?? en, `${baseKey}_other`) ??
+        lookup(en, `${baseKey}_other`) ??
+        resolve(locale, baseKey);
+      return interpolate(template, { count, ...params });
     };
+    return { locale, setLocale, t, tp };
   }, [locale, setLocale]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
@@ -122,6 +147,11 @@ export function useI18n(): I18nContextValue {
 
 export function useT(): TFunction {
   return useI18n().t;
+}
+
+/** Plural-aware translator — see {@link TPFunction}. */
+export function useTP(): TPFunction {
+  return useI18n().tp;
 }
 
 /** iOS-style segmented EN / RU switch. Relies on the `.segmented` class from @prioritizz/ui styles. */

@@ -1,13 +1,18 @@
 import type {
   AdminLoginInput,
+  Attachment,
   AuthResponse,
   BecomeSellerInput,
   Category,
   CategoryUpsertInput,
+  ChatListQuery,
+  ChatMessage,
+  ChatPage,
   CommissionRule,
   CommissionRuleUpsertInput,
   CreateOrderInput,
   CreatePaymentIntentInput,
+  CreateReviewInput,
   DashboardMetrics,
   Dispute,
   ModerationDecisionInput,
@@ -16,10 +21,16 @@ import type {
   OrderConfirmInput,
   OrderDeliverInput,
   OrderEvent,
+  OrderMessageInput,
   PaymentIntent,
   Payout,
+  PresignResult,
+  PresignUploadInput,
+  RatingSummary,
   RequestPayoutInput,
   ResolveDisputeInput,
+  Review,
+  ReviewListQuery,
   Service,
   ServiceListQuery,
   ServiceUpsertInput,
@@ -69,6 +80,7 @@ export function createApiClient(options: HttpClientOptions) {
       update: (input: UpdateMeInput) => http.patch<UserProfile>('me', input),
       wallet: () => http.get<WalletSummary>('me/wallet'),
       becomeSeller: (input: BecomeSellerInput) => http.post<UserProfile>('me/seller', input),
+      syncAvatarFromTelegram: () => http.post<UserProfile>('me/avatar/from-telegram'),
     },
 
     catalog: {
@@ -82,6 +94,21 @@ export function createApiClient(options: HttpClientOptions) {
         http.put<Service>(`seller/services/${id}`, input),
       submitService: (id: string) => http.post<Service>(`seller/services/${id}/submit`),
       pauseService: (id: string) => http.post<Service>(`seller/services/${id}/pause`),
+      /** Seller's own listings, drafts and paused included. */
+      myServices: (query: Partial<ServiceListQuery> = {}) =>
+        http.get<Paginated<Service>>('seller/services', { query: query as Q }),
+    },
+
+    media: {
+      /** Direct multipart upload — returns a ready-to-link attachment. */
+      upload: (file: Blob, ownerType: string, filename = 'image.jpg') => {
+        const form = new FormData();
+        form.append('file', file, filename);
+        return http.post<Attachment>('media/upload', form, { query: { ownerType } });
+      },
+      presign: (input: PresignUploadInput) => http.post<PresignResult>('media/presign', input),
+      confirm: (id: string) => http.post<Attachment>(`media/${id}/confirm`),
+      remove: (id: string) => http.delete<{ ok: boolean }>(`media/${id}`),
     },
 
     orders: {
@@ -95,7 +122,25 @@ export function createApiClient(options: HttpClientOptions) {
         http.post<Order>(`orders/${id}/deliver`, input),
       confirm: (id: string, input: OrderConfirmInput) =>
         http.post<Order>(`orders/${id}/confirm`, input),
-      message: (id: string, body: string) => http.post<void>(`orders/${id}/messages`, { body }),
+    },
+
+    chat: {
+      list: (orderId: string, query: Partial<ChatListQuery> = {}) =>
+        http.get<ChatPage>(`orders/${orderId}/messages`, { query: query as Q }),
+      send: (orderId: string, input: OrderMessageInput) =>
+        http.post<ChatMessage>(`orders/${orderId}/messages`, input),
+      markRead: (orderId: string) => http.post<{ read: number }>(`orders/${orderId}/messages/read`),
+    },
+
+    reviews: {
+      forService: (serviceId: string, query: Partial<ReviewListQuery> = {}) =>
+        http.get<Paginated<Review>>(`services/${serviceId}/reviews`, { query: query as Q }),
+      serviceSummary: (serviceId: string) =>
+        http.get<RatingSummary>(`services/${serviceId}/reviews/summary`),
+      forSeller: (sellerId: string, query: Partial<ReviewListQuery> = {}) =>
+        http.get<Paginated<Review>>(`sellers/${sellerId}/reviews`, { query: query as Q }),
+      create: (input: CreateReviewInput) => http.post<Review>('reviews', input),
+      reply: (id: string, text: string) => http.post<Review>(`reviews/${id}/reply`, { text }),
     },
 
     payments: {

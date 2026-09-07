@@ -33,4 +33,10 @@ export class UsersController {
   becomeSeller(@CurrentUser() u: AuthContext, @Body() dto: BecomeSellerDto) {
     return this.users.becomeSeller(u.userId, dto);
   }
+
+  /** Import the caller's current Telegram profile photo as their avatar. */
+  @Post('avatar/from-telegram')
+  syncAvatar(@CurrentUser() u: AuthContext) {
+    return this.users.syncAvatarFromTelegram(u.userId);
+  }
 }

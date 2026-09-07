@@ -186,7 +186,10 @@ export class OrdersService {
       });
       if (!order) throw AppException.notFound('Order', orderId);
       if (!['IN_ESCROW', 'IN_PROGRESS'].includes(order.status)) {
-        throw new AppException(ERROR_CODES.ORDER_INVALID_TRANSITION, `Cannot deliver from ${order.status}`);
+        throw new AppException(
+          ERROR_CODES.ORDER_INVALID_TRANSITION,
+          `Cannot deliver from ${order.status}`,
+        );
       }
       const autoReleaseAt = new Date(Date.now() + this.env.ESCROW_AUTO_RELEASE_HOURS * 3600 * 1000);
       await this.sm.transition(tx, order, 'DELIVERED', {
@@ -197,19 +200,26 @@ export class OrdersService {
       });
       await tx.order.update({
         where: { id: orderId },
-        data: { deliveredAt: new Date(), autoReleaseAt, deliveryPayload: payload ?? order.deliveryPayload },
+        data: {
+          deliveredAt: new Date(),
+          autoReleaseAt,
+          deliveryPayload: payload ?? order.deliveryPayload,
+        },
       });
       // NOTE: schedule ESCROW_AUTO_RELEASE job on the ESCROW_TIMERS queue (M4).
       return this.get(userId, orderId);
     });
   }
 
-  async confirm(userId: string, orderId: string) {
-    return this.prisma.$transaction(async (tx) => {
+  async confirm(userId: string, orderId: string, review?: { rating: number; text?: string }) {
+    await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findFirst({ where: { id: orderId, buyerId: userId } });
       if (!order) throw AppException.notFound('Order', orderId);
       if (order.status !== 'DELIVERED') {
-        throw new AppException(ERROR_CODES.ORDER_INVALID_TRANSITION, `Cannot confirm from ${order.status}`);
+        throw new AppException(
+          ERROR_CODES.ORDER_INVALID_TRANSITION,
+          `Cannot confirm from ${order.status}`,
+        );
       }
       await this.sm.transition(tx, order, 'COMPLETED', {
         actorType: 'BUYER',
@@ -218,8 +228,38 @@ export class OrdersService {
       });
       await tx.order.update({ where: { id: orderId }, data: { completedAt: new Date() } });
       // NOTE: EscrowService.release() posts the ledger entries (M4).
-      return this.get(userId, orderId);
+
+      // Optional review captured at confirm time — recompute aggregates inline.
+      if (review) {
+        await tx.review.create({
+          data: {
+            orderId: order.id,
+            serviceId: order.serviceId,
+            sellerId: order.sellerId,
+            authorId: userId,
+            rating: review.rating,
+            text: review.text ?? null,
+          },
+        });
+        for (const [key, id] of [
+          ['serviceId', order.serviceId],
+          ['sellerId', order.sellerId],
+        ] as const) {
+          const agg = await tx.review.aggregate({
+            where: { [key]: id, isHidden: false, deletedAt: null },
+            _avg: { rating: true },
+            _count: { rating: true },
+          });
+          const data = {
+            ratingAvg: Math.round((agg._avg.rating ?? 0) * 100) / 100,
+            ratingCount: agg._count.rating,
+          };
+          if (key === 'serviceId') await tx.service.update({ where: { id }, data });
+          else await tx.sellerProfile.update({ where: { id }, data });
+        }
+      }
     });
+    return this.get(userId, orderId);
   }
 
   // ---- helpers ----

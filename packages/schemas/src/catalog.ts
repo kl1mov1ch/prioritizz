@@ -12,6 +12,7 @@ import {
   paginationQuerySchema,
   timestampsSchema,
 } from './common.js';
+import { MAX_SERVICE_IMAGES } from './media.js';
 
 export const categorySchema: z.ZodType<Category> = z.lazy(() =>
   z.object({
@@ -56,31 +57,65 @@ export const serviceVariantInputSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-export const serviceUpsertSchema = z.object({
-  title: z.string().min(4).max(120),
-  summary: z.string().min(10).max(300),
-  description: z.string().min(20).max(8000),
-  kind: z.enum(SERVICE_KIND),
-  deliveryType: z.enum(DELIVERY_TYPE),
-  categoryId: idSchema,
-  currency: currencySchema,
-  basePriceAmount: moneySchema,
-  slaHours: z
-    .number()
-    .int()
-    .min(0)
-    .max(24 * 30),
-  refundPolicy: z.string().max(2000),
-  terms: z.string().max(4000).optional(),
-  tags: z.array(z.string().min(1).max(24)).max(15).default([]),
-  minQuantity: z.number().int().min(1).default(1),
-  maxQuantity: z.number().int().min(1).default(1),
-  perBuyerLimit: z.number().int().min(0).default(0), // 0 = unlimited
-  autoModeration: z.boolean().default(true),
-  sellerCommissionOverrideBps: z.number().int().min(0).max(10_000).nullable().optional(),
-  variants: z.array(serviceVariantInputSchema).max(30).default([]),
-  attachmentIds: z.array(idSchema).max(10).default([]),
-});
+export const serviceUpsertSchema = z
+  .object({
+    title: z.string().min(4).max(120),
+    summary: z.string().min(10).max(300),
+    description: z.string().min(20).max(8000),
+    kind: z.enum(SERVICE_KIND),
+    deliveryType: z.enum(DELIVERY_TYPE),
+    categoryId: idSchema,
+    currency: currencySchema,
+    basePriceAmount: moneySchema,
+    slaHours: z
+      .number()
+      .int()
+      .min(0)
+      .max(24 * 30),
+    refundPolicy: z.string().max(2000),
+    terms: z.string().max(4000).optional(),
+    tags: z.array(z.string().min(1).max(24)).max(15).default([]),
+    minQuantity: z.number().int().min(1).default(1),
+    maxQuantity: z.number().int().min(1).default(1),
+    perBuyerLimit: z.number().int().min(0).default(0), // 0 = unlimited
+    autoModeration: z.boolean().default(true),
+    sellerCommissionOverrideBps: z.number().int().min(0).max(10_000).nullable().optional(),
+    variants: z.array(serviceVariantInputSchema).max(30).default([]),
+    attachmentIds: z.array(idSchema).max(MAX_SERVICE_IMAGES).default([]),
+  })
+  .superRefine((v, ctx) => {
+    if (v.maxQuantity < v.minQuantity) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['maxQuantity'],
+        message: 'maxQuantity must be greater than or equal to minQuantity',
+      });
+    }
+    if (v.perBuyerLimit > 0 && v.perBuyerLimit < v.minQuantity) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['perBuyerLimit'],
+        message: 'perBuyerLimit cannot be below minQuantity',
+      });
+    }
+    // Exactly one default keeps checkout unambiguous when variants exist.
+    const defaults = v.variants.filter((x) => x.isDefault).length;
+    if (v.variants.length > 0 && defaults !== 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['variants'],
+        message: 'exactly one variant must be marked as default',
+      });
+    }
+    const names = v.variants.map((x) => x.name.trim().toLowerCase());
+    if (new Set(names).size !== names.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['variants'],
+        message: 'variant names must be unique',
+      });
+    }
+  });
 export type ServiceUpsertInput = z.infer<typeof serviceUpsertSchema>;
 
 export const serviceListQuerySchema = paginationQuerySchema.extend({
@@ -116,11 +151,14 @@ export const serviceSchema = z.object({
   maxQuantity: z.number().int(),
   ratingAvg: z.number(),
   ratingCount: z.number().int(),
+  soldCount: z.number().int(),
   seller: z.object({
     id: idSchema,
     displayName: z.string(),
     tier: z.string(),
     ratingAvg: z.number(),
+    ratingCount: z.number().int(),
+    completedOrders: z.number().int(),
     isVerified: z.boolean(),
   }),
   variants: z.array(serviceVariantInputSchema.extend({ id: idSchema, priceAmount: moneySchema })),

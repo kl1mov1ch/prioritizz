@@ -9,7 +9,10 @@ import {
 } from '@prioritizz/schemas';
 import { OrdersService } from './orders.service';
 import { createZodDto } from '../../common/zod-dto';
-import { Idempotent, IdempotencyInterceptor } from '../../common/interceptors/idempotency.interceptor';
+import {
+  Idempotent,
+  IdempotencyInterceptor,
+} from '../../common/interceptors/idempotency.interceptor';
 import { CurrentUser, type AuthContext } from '../../common/decorators/current-user.decorator';
 
 class CreateOrderDto extends createZodDto(createOrderSchema) {}
@@ -57,7 +60,8 @@ export class OrdersController {
 
   @Post(':id/confirm')
   confirm(@CurrentUser() u: AuthContext, @Param('id') id: string, @Body() dto: ConfirmDto) {
-    void dto;
-    return this.orders.confirm(u.userId, id);
+    const review =
+      dto.rating != null ? { rating: dto.rating, text: dto.reviewText ?? undefined } : undefined;
+    return this.orders.confirm(u.userId, id, review);
   }
 }

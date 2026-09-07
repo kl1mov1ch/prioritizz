@@ -3,15 +3,35 @@
  * injected `window.Telegram.WebApp` rather than a heavy SDK so the shell stays
  * tiny; swap for @telegram-apps/sdk if richer bindings are needed.
  */
+import { useEffect, useState } from 'react';
+
 interface TgWebApp {
   initData: string;
-  initDataUnsafe: { user?: { language_code?: string } } & Record<string, unknown>;
+  initDataUnsafe: { user?: { language_code?: string; photo_url?: string } } & Record<
+    string,
+    unknown
+  >;
   colorScheme: 'light' | 'dark';
   themeParams: Record<string, string>;
+  viewportHeight: number;
+  viewportStableHeight: number;
+  isExpanded: boolean;
   expand(): void;
   ready(): void;
   enableClosingConfirmation(): void;
-  HapticFeedback?: { impactOccurred(style: string): void };
+  onEvent(event: string, cb: () => void): void;
+  offEvent(event: string, cb: () => void): void;
+  HapticFeedback?: {
+    impactOccurred(style: string): void;
+    notificationOccurred(type: 'error' | 'success' | 'warning'): void;
+    selectionChanged(): void;
+  };
+  BackButton?: {
+    show(): void;
+    hide(): void;
+    onClick(cb: () => void): void;
+    offClick(cb: () => void): void;
+  };
   MainButton: {
     setText(t: string): void;
     show(): void;
@@ -61,4 +81,43 @@ export function getInitData(): string {
 
 export function haptic(style: 'light' | 'medium' | 'heavy' = 'light'): void {
   getWebApp()?.HapticFeedback?.impactOccurred(style);
+}
+
+export function notify(type: 'error' | 'success' | 'warning'): void {
+  getWebApp()?.HapticFeedback?.notificationOccurred(type);
+}
+
+/**
+ * Pixels currently hidden by the on-screen keyboard, derived from Telegram's
+ * viewport events. Lets a sticky composer lift above the keyboard instead of
+ * being covered — `viewportChanged` is the only signal Telegram gives for this.
+ */
+export function useViewportInset(): number {
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    const wa = getWebApp();
+    if (!wa) return;
+    const update = () => {
+      const hidden = Math.max(0, Math.round(wa.viewportStableHeight - wa.viewportHeight));
+      setInset(hidden);
+    };
+    update();
+    wa.onEvent('viewportChanged', update);
+    return () => wa.offEvent('viewportChanged', update);
+  }, []);
+  return inset;
+}
+
+/** Wire Telegram's native hardware/hitbox back button to a callback while mounted. */
+export function useTelegramBackButton(onBack: () => void): void {
+  useEffect(() => {
+    const bb = getWebApp()?.BackButton;
+    if (!bb) return;
+    bb.onClick(onBack);
+    bb.show();
+    return () => {
+      bb.offClick(onBack);
+      bb.hide();
+    };
+  }, [onBack]);
 }

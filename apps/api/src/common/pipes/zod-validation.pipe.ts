@@ -17,14 +17,17 @@ export class ZodValidationPipe implements PipeTransform {
   transform(value: unknown, metadata: ArgumentMetadata): unknown {
     const schema: ZodSchema | undefined = (metadata.metatype as any)?.[SCHEMA_KEY];
     if (!schema) return value;
-    try {
-      return schema.parse(value);
-    } catch (err) {
-      if (err instanceof ZodError) {
-        throw AppException.validation('Request validation failed', err.flatten());
-      }
-      throw err;
-    }
+    const result = schema.safeParse(value);
+    if (result.success) return result.data;
+    // Duck-typed, not `instanceof`: a ZodEffects (.refine/.superRefine/.transform)
+    // schema can surface a ZodError constructed by a differently-resolved copy
+    // of zod, and instanceof would miss it — turning a 422 into a 500.
+    const err = result.error;
+    const flatten =
+      typeof (err as ZodError)?.flatten === 'function'
+        ? (err as ZodError).flatten()
+        : { formErrors: [String(err)], fieldErrors: {} };
+    throw AppException.validation('Request validation failed', flatten);
   }
 }
 

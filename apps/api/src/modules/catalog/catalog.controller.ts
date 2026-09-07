@@ -44,7 +44,7 @@ export class CatalogController {
   @Post('seller/services')
   async create(@CurrentUser() u: AuthContext, @Body() dto: ServiceUpsertDto) {
     const sellerId = await this.sellerCtx.requireSellerId(u.userId);
-    return this.catalog.createDraft(sellerId, dto);
+    return this.catalog.createDraft(sellerId, u.userId, dto);
   }
 
   @ApiBearerAuth()
@@ -56,12 +56,19 @@ export class CatalogController {
     @Body() dto: ServiceUpsertDto,
   ) {
     const sellerId = await this.sellerCtx.requireSellerId(u.userId);
-    // full update reuses createDraft-style mapping in M2; placeholder returns current
-    void dto;
-    return this.catalog.getService(id).then((s) => {
-      void sellerId;
-      return s;
-    });
+    return this.catalog.update(sellerId, u.userId, id, dto);
+  }
+
+  /** Seller's own listings, including drafts — the storefront list is public. */
+  @ApiBearerAuth()
+  @Roles(ROLES.SELLER)
+  @Get('seller/services')
+  async mine(@CurrentUser() u: AuthContext, @Query() query: Record<string, string>) {
+    const sellerId = await this.sellerCtx.requireSellerId(u.userId);
+    return this.catalog.listServices(
+      { ...serviceListQuerySchema.parse(query), sellerId },
+      { anyStatus: true },
+    );
   }
 
   @ApiBearerAuth()

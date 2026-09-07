@@ -15,6 +15,9 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { SellersModule } from './modules/sellers/sellers.module';
+import { MediaModule } from './modules/media/media.module';
+import { MessagesModule } from './modules/messages/messages.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { CommissionsModule } from './modules/commissions/commissions.module';
 import { LedgerModule } from './modules/ledger/ledger.module';
@@ -53,10 +56,13 @@ const env = loadEnv();
     AuthModule,
     UsersModule,
     SellersModule,
+    MediaModule,
     CatalogModule,
     CommissionsModule,
     LedgerModule,
     OrdersModule,
+    MessagesModule,
+    ReviewsModule,
     HealthModule,
   ],
   providers: [

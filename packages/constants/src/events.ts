@@ -14,6 +14,7 @@ export const DOMAIN_EVENTS = {
   ORDER_COMPLETED: 'order.completed',
   ORDER_CANCELED: 'order.canceled',
   ORDER_EXPIRED: 'order.expired',
+  ORDER_MESSAGE_POSTED: 'order.message.posted',
 
   PAYMENT_SUCCEEDED: 'payment.succeeded',
   PAYMENT_FAILED: 'payment.failed',

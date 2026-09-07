@@ -38,11 +38,15 @@ module.exports = {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
         },
+        // `muted` is a TEXT role, not a surface — `text-muted` is the secondary
+        // body colour. For a muted *surface* use `bg-grouped`. (Mapping DEFAULT
+        // to --muted made text-muted paint --surface-grouped: near-invisible in
+        // both themes.)
         muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground) / 0.78)',
+          DEFAULT: 'hsl(var(--muted-foreground) / var(--text-secondary-alpha))',
+          foreground: 'hsl(var(--muted-foreground) / var(--text-secondary-alpha))',
         },
-        subtle: 'hsl(var(--text-tertiary) / 0.55)',
+        subtle: 'hsl(var(--text-tertiary) / var(--text-tertiary-alpha))',
         accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
@@ -118,9 +122,20 @@ module.exports = {
           '0%': { opacity: '0', transform: 'translateY(6px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'slide-up': {
+          '0%': { transform: 'translateY(100%)' },
+          '100%': { transform: 'translateY(0)' },
+        },
       },
       animation: {
         'fade-up': 'fade-up 0.32s cubic-bezier(0.32, 0.72, 0, 1) both',
+        'fade-in': 'fade-in 0.2s ease-out both',
+        // Same easing as the sheet's platform counterpart.
+        'slide-up': 'slide-up 0.34s cubic-bezier(0.32, 0.72, 0, 1) both',
       },
     },
   },
