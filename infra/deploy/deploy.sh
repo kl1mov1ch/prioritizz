@@ -16,7 +16,8 @@
 set -euo pipefail
 
 IP="${SERVER_IP:-185.195.24.236}"
-PUBLIC_HOST="${PUBLIC_HOST:-${IP}.sslip.io}"
+# Real domain for the public site; admin on sslip.io needs zero DNS setup.
+PUBLIC_HOST="${PUBLIC_HOST:-fiat-legacy.by}"
 ADMIN_HOST="${ADMIN_HOST:-admin.${IP}.sslip.io}"
 COMPOSE="docker compose -f docker-compose.prod.yml"
 
@@ -111,11 +112,13 @@ VITE_TELEGRAM_BOT_USERNAME=prioritizz_bot
 EOF
   chmod 600 .env
 else
-  echo "==> .env exists — keeping it (only refreshing host lines)"
-  sed -i "s#^PUBLIC_HOST=.*#PUBLIC_HOST=${PUBLIC_HOST}#"             .env
-  sed -i "s#^ADMIN_HOST=.*#ADMIN_HOST=${ADMIN_HOST}#"               .env
-  sed -i "s#^MINI_APP_URL=.*#MINI_APP_URL=https://${PUBLIC_HOST}#"  .env
-  sed -i "s#^ADMIN_PANEL_URL=.*#ADMIN_PANEL_URL=https://${ADMIN_HOST}#" .env
+  echo "==> .env exists — keeping secrets, refreshing host lines"
+  sed -i "s#^PUBLIC_HOST=.*#PUBLIC_HOST=${PUBLIC_HOST}#"                       .env
+  sed -i "s#^ADMIN_HOST=.*#ADMIN_HOST=${ADMIN_HOST}#"                         .env
+  sed -i "s#^MINI_APP_URL=.*#MINI_APP_URL=https://${PUBLIC_HOST}#"            .env
+  sed -i "s#^ADMIN_PANEL_URL=.*#ADMIN_PANEL_URL=https://${ADMIN_HOST}#"       .env
+  sed -i "s#^S3_PUBLIC_URL=.*#S3_PUBLIC_URL=https://${PUBLIC_HOST}/media/prioritizz-media#" .env
+  sed -i "s#^CADDY_ACME_EMAIL=.*#CADDY_ACME_EMAIL=admin@${PUBLIC_HOST}#"      .env
   grep -q '^CORS_ORIGINS=' .env && sed -i "s#^CORS_ORIGINS=.*#CORS_ORIGINS=https://${PUBLIC_HOST},https://${ADMIN_HOST},https://t.me#" .env
 fi
 
