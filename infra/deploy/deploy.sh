@@ -16,8 +16,11 @@
 set -euo pipefail
 
 IP="${SERVER_IP:-185.195.24.236}"
-# Real domain for the public site; admin on sslip.io needs zero DNS setup.
-PUBLIC_HOST="${PUBLIC_HOST:-fiat-legacy.by}"
+# Host overrides are OPT-IN. If you pass PUBLIC_HOST/ADMIN_HOST the script
+# rewrites the matching lines in .env; otherwise it trusts whatever .env says
+# (or the defaults below when writing .env for the first time).
+HOST_OVERRIDE="${PUBLIC_HOST:-}${ADMIN_HOST:-}"
+PUBLIC_HOST="${PUBLIC_HOST:-fiat-legacy.xyz}"
 ADMIN_HOST="${ADMIN_HOST:-admin.${IP}.sslip.io}"
 COMPOSE="docker compose -f docker-compose.prod.yml"
 
@@ -118,8 +121,8 @@ VITE_API_BASE_URL=/api/v1
 VITE_TELEGRAM_BOT_USERNAME=prioritizz_bot
 EOF
   chmod 600 .env
-else
-  echo "==> .env exists — keeping secrets, refreshing host lines"
+elif [ -n "$HOST_OVERRIDE" ]; then
+  echo "==> .env exists — PUBLIC_HOST/ADMIN_HOST override given, rewriting host lines"
   sed -i "s#^PUBLIC_HOST=.*#PUBLIC_HOST=${PUBLIC_HOST}#"                       .env
   sed -i "s#^ADMIN_HOST=.*#ADMIN_HOST=${ADMIN_HOST}#"                         .env
   sed -i "s#^MINI_APP_URL=.*#MINI_APP_URL=https://${PUBLIC_HOST}#"            .env
@@ -127,6 +130,10 @@ else
   sed -i "s#^S3_PUBLIC_URL=.*#S3_PUBLIC_URL=https://${PUBLIC_HOST}/media/prioritizz-media#" .env
   sed -i "s#^CADDY_ACME_EMAIL=.*#CADDY_ACME_EMAIL=admin@${PUBLIC_HOST}#"      .env
   grep -q '^CORS_ORIGINS=' .env && sed -i "s#^CORS_ORIGINS=.*#CORS_ORIGINS=https://${PUBLIC_HOST},https://${ADMIN_HOST},https://t.me#" .env
+else
+  echo "==> .env exists — using it as-is"
+  PUBLIC_HOST="$(kv PUBLIC_HOST)"; PUBLIC_HOST="${PUBLIC_HOST:-fiat-legacy.xyz}"
+  ADMIN_HOST="$(kv ADMIN_HOST)"; ADMIN_HOST="${ADMIN_HOST:-admin.${IP}.sslip.io}"
 fi
 
 BOT_TOKEN="$(kv TELEGRAM_BOT_TOKEN)"
