@@ -36,6 +36,13 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 docker compose version >/dev/null 2>&1 || { echo "docker compose plugin missing"; exit 1; }
 
+# Building 3 Node images on a 6 GB box can OOM — add swap once if there's none.
+if [ "$(free -m | awk '/Swap:/{print $2}')" = "0" ]; then
+  echo "==> no swap; adding a 4 GB swapfile for the build"
+  fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
 # ---------------------------------------------------------------------------
 # 2. Firewall — Caddy needs 80 + 443 reachable for the ACME challenge
 # ---------------------------------------------------------------------------
