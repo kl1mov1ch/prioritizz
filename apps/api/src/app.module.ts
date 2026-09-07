@@ -21,7 +21,15 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { CommissionsModule } from './modules/commissions/commissions.module';
 import { LedgerModule } from './modules/ledger/ledger.module';
+import { OrdersCoreModule } from './modules/orders/orders-core.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { EscrowModule } from './modules/escrow/escrow.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { DisputesModule } from './modules/disputes/disputes.module';
+import { PayoutsModule } from './modules/payouts/payouts.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { WorkersModule } from './workers/workers.module';
 import { HealthModule } from './modules/health/health.module';
 
 const env = loadEnv();
@@ -60,9 +68,17 @@ const env = loadEnv();
     CatalogModule,
     CommissionsModule,
     LedgerModule,
+    OrdersCoreModule,
+    EscrowModule,
     OrdersModule,
+    PaymentsModule,
+    DisputesModule,
+    PayoutsModule,
+    NotificationsModule,
     MessagesModule,
     ReviewsModule,
+    AdminModule,
+    WorkersModule,
     HealthModule,
   ],
   providers: [

@@ -7,6 +7,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { IdempotencyInterceptor } from './interceptors/idempotency.interceptor';
 import { AuditService } from './audit/audit.service';
 import { OutboxService } from './outbox/outbox.service';
+import { OutboxDispatcher } from './outbox/outbox-dispatcher';
 
 const env = loadEnv();
 
@@ -22,6 +23,7 @@ const env = loadEnv();
   providers: [
     AuditService,
     OutboxService,
+    OutboxDispatcher,
     IdempotencyInterceptor,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

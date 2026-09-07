@@ -7,6 +7,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AppException } from '../../common/errors/app-exception';
 import { CommissionEngine } from '../commissions/commission-engine';
 import { OrderStateMachine } from './order.state-machine';
+import { EscrowService } from '../escrow/escrow.service';
 import { loadEnv } from '@prioritizz/config';
 
 const D = Prisma.Decimal;
@@ -20,6 +21,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly commissions: CommissionEngine,
     private readonly sm: OrderStateMachine,
+    private readonly escrow: EscrowService,
   ) {}
 
   async create(buyerId: string, input: CreateOrderInput) {
@@ -221,13 +223,32 @@ export class OrdersService {
           `Cannot confirm from ${order.status}`,
         );
       }
-      await this.sm.transition(tx, order, 'COMPLETED', {
-        actorType: 'BUYER',
-        actorId: userId,
-        eventName: DOMAIN_EVENTS.ORDER_COMPLETED,
+      const open = await tx.dispute.findFirst({
+        where: {
+          orderId,
+          status: { in: ['OPEN', 'AWAITING_BUYER', 'AWAITING_SELLER', 'UNDER_REVIEW'] },
+        },
       });
-      await tx.order.update({ where: { id: orderId }, data: { completedAt: new Date() } });
-      // NOTE: EscrowService.release() posts the ledger entries (M4).
+      if (open) {
+        throw new AppException(
+          ERROR_CODES.ORDER_INVALID_TRANSITION,
+          'Order has an open dispute — resolve it first',
+        );
+      }
+      // release() moves the ledger, marks the order COMPLETED and bumps stats.
+      await this.escrow.release(
+        tx,
+        {
+          id: order.id,
+          status: order.status,
+          version: order.version,
+          currency: order.currency,
+          sellerId: order.sellerId,
+          sellerNetAmount: order.sellerNetAmount,
+          commissionSnapshot: order.commissionSnapshot,
+        },
+        { type: 'BUYER', id: userId },
+      );
 
       // Optional review captured at confirm time — recompute aggregates inline.
       if (review) {
