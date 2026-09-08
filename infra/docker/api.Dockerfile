@@ -1,20 +1,17 @@
 # syntax=docker/dockerfile:1
 FROM node:22-alpine AS build
-# This box's route to registry.npmjs.org (Cloudflare) is throttled/dropping.
-# corepack ignores npm_config_registry, so skip it: install pnpm via bundled npm
-# from a non-Cloudflare mirror. pnpm + Prisma engine downloads use the mirror too.
-ENV npm_config_registry=https://mirrors.cloud.tencent.com/npm/ \
-    npm_config_store_dir=/pnpm/store \
-    npm_config_fetch_retries=8 \
+# Direct from npmjs (fastest when the route is healthy). npm i -g instead of
+# corepack: corepack's own downloader hardcodes registry.npmjs.org and stalls.
+# --prefer-offline: reuse the cached pnpm store, hit the network only for misses.
+ENV npm_config_fetch_retries=8 \
     npm_config_fetch_retry_maxtimeout=240000 \
     npm_config_fetch_timeout=1200000 \
-    PRISMA_ENGINES_MIRROR=https://registry.npmmirror.com/-/binary \
-    PRISMA_BINARIES_MIRROR=https://registry.npmmirror.com/-/binary
+    npm_config_store_dir=/pnpm/store
 RUN npm install -g pnpm@11.3.0 && apk add --no-cache openssl
 WORKDIR /app
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --frozen-lockfile --network-concurrency=4 \
+    pnpm install --frozen-lockfile --prefer-offline --network-concurrency=6 \
  && pnpm db:generate \
  && pnpm build --filter=@prioritizz/api
 
