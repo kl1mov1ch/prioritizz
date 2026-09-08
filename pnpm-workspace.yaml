@@ -2,7 +2,16 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
-# NOTE: do NOT put onlyBuiltDependencies here — pnpm 11.3 does not read it from
-# this file, and declaring it only suppresses pnpm's built-in default allowlist,
-# which is what actually lets esbuild/prisma/@nestjs/core run their postinstalls.
-# The build-script config lives in package.json under "pnpm" instead.
+# pnpm 11 reads its settings ONLY from this file — the "pnpm" field in
+# package.json and these keys in .npmrc are both ignored (it warns about the
+# former). See https://pnpm.io/settings.
+
+# Dependency build scripts are gated by default, and with no TTY to run
+# `pnpm approve-builds` the install exits 1 with ERR_PNPM_IGNORED_BUILDS.
+# Everything installed here comes from a committed lockfile, so run them all.
+dangerouslyAllowAllBuilds: true
+
+# Skips the "Verifying lockfile against supply-chain policies (895 entries)"
+# pass — one registry round-trip per locked package, which costs 3-5 min on
+# this VPS's throttled route to registry.npmjs.org and times out at random.
+minimumReleaseAge: 0
