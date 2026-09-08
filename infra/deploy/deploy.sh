@@ -39,6 +39,17 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 docker compose version >/dev/null 2>&1 || { echo "docker compose plugin missing"; exit 1; }
 
+# Some VPS network paths blackhole large packets inside the build/container
+# netns while the host network is fine — npm tarballs and Prisma engines then
+# time out mid-download. Lower the MTU and pin public DNS for the daemon.
+echo "==> docker daemon.json (mtu 1400 + public DNS)"
+mkdir -p /etc/docker
+if ! grep -q '"mtu"' /etc/docker/daemon.json 2>/dev/null; then
+  printf '{ "mtu": 1400, "dns": ["1.1.1.1", "8.8.8.8"] }\n' > /etc/docker/daemon.json
+  systemctl restart docker 2>/dev/null || service docker restart || true
+  sleep 4
+fi
+
 # Building 3 Node images on a 6 GB box can OOM — add swap once if there's none.
 if [ "$(free -m | awk '/Swap:/{print $2}')" = "0" ]; then
   echo "==> no swap; adding a 4 GB swapfile for the build"
@@ -147,8 +158,20 @@ fi
 # ---------------------------------------------------------------------------
 # 4. Build + start
 # ---------------------------------------------------------------------------
-echo "==> building images (first run ~8-15 min)"
-$COMPOSE build
+echo "==> building images one at a time (first run ~10-20 min on a slow link)"
+# Sequential, not parallel: three concurrent pnpm installs saturate a thin
+# uplink and trip download timeouts. The shared pnpm-store cache mount makes
+# the 2nd and 3rd builds mostly reuse what the 1st already fetched.
+for svc in migrate bot webbuild; do
+  echo "   -> building $svc"
+  n=0
+  until $COMPOSE build "$svc"; do
+    n=$((n + 1))
+    [ "$n" -ge 3 ] && { echo "!! $svc failed to build after $n attempts"; exit 1; }
+    echo "   $svc build hiccup (network?), retry $n/3 in 10s..."
+    sleep 10
+  done
+done
 
 echo "==> starting stack"
 $COMPOSE up -d

@@ -69,6 +69,7 @@ services:
     build:
       context: .
       dockerfile: infra/docker/api.Dockerfile
+      network: host
     image: prioritizz-prod-api
     env_file: [.env]
     environment:
@@ -126,6 +127,7 @@ services:
     build:
       context: .
       dockerfile: infra/docker/bot.Dockerfile
+      network: host
     env_file: [.env]
     environment:
       NODE_ENV: production
@@ -138,6 +140,7 @@ services:
     build:
       context: .
       dockerfile: infra/docker/webbuild.Dockerfile
+      network: host
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
         VITE_TELEGRAM_BOT_USERNAME: ${VITE_TELEGRAM_BOT_USERNAME:-prioritizz_bot}
