@@ -8,7 +8,7 @@ RUN npm install -g pnpm@11.3.0 && apk add --no-cache openssl
 WORKDIR /app
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline --network-concurrency=6 \
- && pnpm build --filter=@prioritizz/config --filter=@prioritizz/constants
+    pnpm install --frozen-lockfile --prefer-offline --network-concurrency=6
+RUN pnpm build --filter=@prioritizz/config --filter=@prioritizz/constants
 ENV NODE_ENV=production
 CMD ["pnpm", "--filter", "@prioritizz/bot", "start"]

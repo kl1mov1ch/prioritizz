@@ -10,10 +10,12 @@ ENV npm_config_fetch_retries=8 \
 RUN npm install -g pnpm@11.3.0 && apk add --no-cache openssl
 WORKDIR /app
 COPY . .
+# Split so a successful install becomes its own cached layer — the steps after
+# it are offline, and a failure there must not force the install to re-run.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline --network-concurrency=6 \
- && pnpm db:generate \
- && pnpm build --filter=@prioritizz/api
+    pnpm install --frozen-lockfile --prefer-offline --network-concurrency=6
+RUN pnpm db:generate
+RUN pnpm build --filter=@prioritizz/api
 
 FROM node:22-alpine AS runtime
 RUN apk add --no-cache openssl wget
