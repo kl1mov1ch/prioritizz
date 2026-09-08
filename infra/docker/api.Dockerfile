@@ -1,19 +1,22 @@
 # syntax=docker/dockerfile:1
 FROM node:22-alpine AS build
-# Resilient installs on slow/flaky VPS links: shared cached store + long retries.
-ENV npm_config_store_dir=/pnpm/store \
-    npm_config_fetch_retries=6 \
+# This box's route to registry.npmjs.org (Cloudflare) is throttled — sustained
+# downloads crawl and time out. Pull from a non-Cloudflare mirror, cap parallelism
+# so the thin link keeps up, and share a cached pnpm store across retries/images.
+ENV npm_config_registry=https://registry.npmmirror.com/ \
+    npm_config_store_dir=/pnpm/store \
+    npm_config_fetch_retries=8 \
     npm_config_fetch_retry_mintimeout=20000 \
-    npm_config_fetch_retry_maxtimeout=180000 \
-    npm_config_fetch_timeout=600000
+    npm_config_fetch_retry_maxtimeout=240000 \
+    npm_config_fetch_timeout=1200000 \
+    PRISMA_ENGINES_MIRROR=https://registry.npmmirror.com/-/binary \
+    PRISMA_BINARIES_MIRROR=https://registry.npmmirror.com/-/binary
 RUN corepack enable && apk add --no-cache openssl
 WORKDIR /app
 COPY . .
 # Full turbo build: shared packages first, then the api (nest build).
-# The pnpm store is a BuildKit cache mount — reused by the bot/webbuild images
-# and preserved across retries, so a dropped download resumes instead of restarting.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --frozen-lockfile \
+    pnpm install --frozen-lockfile --network-concurrency=4 \
  && pnpm db:generate \
  && pnpm build --filter=@prioritizz/api
 
