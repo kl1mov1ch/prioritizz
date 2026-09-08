@@ -1,27 +1,25 @@
 # syntax=docker/dockerfile:1
 FROM node:22-alpine AS build
-# This box's route to registry.npmjs.org (Cloudflare) is throttled — sustained
-# downloads crawl and time out. Pull from a non-Cloudflare mirror, cap parallelism
-# so the thin link keeps up, and share a cached pnpm store across retries/images.
-ENV npm_config_registry=https://registry.npmmirror.com/ \
+# This box's route to registry.npmjs.org (Cloudflare) is throttled/dropping.
+# corepack ignores npm_config_registry, so skip it: install pnpm via bundled npm
+# from a non-Cloudflare mirror. pnpm + Prisma engine downloads use the mirror too.
+ENV npm_config_registry=https://mirrors.cloud.tencent.com/npm/ \
     npm_config_store_dir=/pnpm/store \
     npm_config_fetch_retries=8 \
-    npm_config_fetch_retry_mintimeout=20000 \
     npm_config_fetch_retry_maxtimeout=240000 \
     npm_config_fetch_timeout=1200000 \
     PRISMA_ENGINES_MIRROR=https://registry.npmmirror.com/-/binary \
     PRISMA_BINARIES_MIRROR=https://registry.npmmirror.com/-/binary
-RUN corepack enable && apk add --no-cache openssl
+RUN npm install -g pnpm@11.3.0 && apk add --no-cache openssl
 WORKDIR /app
 COPY . .
-# Full turbo build: shared packages first, then the api (nest build).
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --network-concurrency=4 \
  && pnpm db:generate \
  && pnpm build --filter=@prioritizz/api
 
 FROM node:22-alpine AS runtime
-RUN corepack enable && apk add --no-cache openssl wget
+RUN apk add --no-cache openssl wget
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/node_modules ./node_modules
