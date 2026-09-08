@@ -43,5 +43,18 @@
     "*.{json,md,yml,yaml}": [
       "pnpm exec prettier --write"
     ]
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "msgpackr-extract",
+      "prisma"
+    ],
+    "ignoredBuiltDependencies": [
+      "@scarf/scarf"
+    ]
   }
 }

@@ -2,20 +2,7 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
-# pnpm 10+ gates dependency build scripts behind an explicit allowlist.
-# `allowBuilds` is not a pnpm key — it was silently ignored, and the packages
-# below only ran because they sit on pnpm's built-in default list. Anything off
-# that list (e.g. @scarf/scarf) made `pnpm install` exit 1 with
-# ERR_PNPM_IGNORED_BUILDS, since there is no TTY to run `pnpm approve-builds`.
-onlyBuiltDependencies:
-  - '@nestjs/core'
-  - '@prisma/client'
-  - '@prisma/engines'
-  - esbuild
-  - msgpackr-extract
-  - prisma
-
-# Deliberately not built — @scarf/scarf's postinstall is analytics only.
-# Listing it here is how pnpm records "yes, skipping this is intentional".
-ignoredBuiltDependencies:
-  - '@scarf/scarf'
+# NOTE: do NOT put onlyBuiltDependencies here — pnpm 11.3 does not read it from
+# this file, and declaring it only suppresses pnpm's built-in default allowlist,
+# which is what actually lets esbuild/prisma/@nestjs/core run their postinstalls.
+# The build-script config lives in package.json under "pnpm" instead.
