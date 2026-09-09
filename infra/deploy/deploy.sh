@@ -1,33 +1,47 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Prioritizz — one-shot production deploy for a bare VPS (no domain).
+# Prioritizz — one-shot production deploy for a fresh Ubuntu VPS.
 #
-#   Run ON THE SERVER, as root, from the extracted repo:
+#   On the server, as root:
 #
-#     mkdir -p /var/www/prioritizz && cd /var/www/prioritizz
-#     tar xzf ~/prioritizz.tar.gz            # (upload the tarball first)
+#     apt-get update && apt-get install -y git curl
+#     git clone https://github.com/kl1mov1ch/prioritizz.git /var/www/prioritizz
+#     cd /var/www/prioritizz
+#     PUBLIC_HOST=fiat-legacy.xyz \
+#     TELEGRAM_BOT_TOKEN=123:ABC \
+#     TELEGRAM_LOGIN_CLIENT_ID=123 \
+#     TELEGRAM_LOGIN_SECRET=xxxxx \
 #     bash infra/deploy/deploy.sh
 #
-# HTTPS: 185.195.24.236.sslip.io resolves to this box's IP, so Let's Encrypt
-# signs it — Telegram's WebView requires a browser-trusted cert.
+#   PUBLIC_HOST must already have an A record pointing at this box.
+#   The admin panel defaults to  admin.<public-ip>.sslip.io  (no DNS setup
+#   needed); pass ADMIN_HOST=admin.example.com if you add the record yourself.
 #
-# Idempotent: re-run any time. Existing secrets in .env are kept.
+# What it does: install Docker, add swap, free ports 80/443, build the three
+# images, pull the base images, bring up postgres + redis + minio + api +
+# worker + bot + caddy, run the DB migrations, wait for the Let's Encrypt
+# cert, point the bot's menu button at the Mini App.
+#
+# Idempotent: re-run any time. Secrets already in .env are kept; env vars
+# above are only used the first time .env is written.
 # =============================================================================
 set -euo pipefail
 
-IP="${SERVER_IP:-185.195.24.236}"
-# Host overrides are OPT-IN. If you pass PUBLIC_HOST/ADMIN_HOST the script
-# rewrites the matching lines in .env; otherwise it trusts whatever .env says
-# (or the defaults below when writing .env for the first time).
+cd "$(dirname "$0")/../.."
+echo "==> repo: $PWD"
+
+# --- public IP: for the sslip.io admin host and the closing summary --------
+IP="${SERVER_IP:-$(curl -fsS --max-time 10 https://api.ipify.org 2>/dev/null || true)}"
+[ -n "$IP" ] || IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+
 HOST_OVERRIDE="${PUBLIC_HOST:-}${ADMIN_HOST:-}"
 PUBLIC_HOST="${PUBLIC_HOST:-fiat-legacy.xyz}"
 ADMIN_HOST="${ADMIN_HOST:-admin.${IP}.sslip.io}"
 COMPOSE="docker compose -f docker-compose.prod.yml"
 
-cd "$(dirname "$0")/../.."
-echo "==> repo: $PWD"
 echo "==> public : https://${PUBLIC_HOST}"
 echo "==> admin  : https://${ADMIN_HOST}"
+echo "==> server : ${IP:-<ip unknown>}"
 
 # ---------------------------------------------------------------------------
 # 1. Docker
@@ -50,7 +64,7 @@ if ! grep -q '"mtu"' /etc/docker/daemon.json 2>/dev/null; then
   sleep 4
 fi
 
-# Building 3 Node images on a 6 GB box can OOM — add swap once if there's none.
+# Building the Node images on a small box can OOM — add swap once if there's none.
 if [ "$(free -m | awk '/Swap:/{print $2}')" = "0" ]; then
   echo "==> no swap; adding a 4 GB swapfile for the build"
   fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
@@ -58,7 +72,22 @@ if [ "$(free -m | awk '/Swap:/{print $2}')" = "0" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Firewall — Caddy needs 80 + 443 reachable for the ACME challenge
+# 2. Ports 80 / 443 — the container Caddy binds them
+# ---------------------------------------------------------------------------
+systemctl disable --now nginx apache2 httpd lighttpd 2>/dev/null || true
+# clear a previous run of our own stack (a stale caddy still holding :80)
+$COMPOSE down --remove-orphans 2>/dev/null || true
+if ss -tlnH 2>/dev/null | grep -qE ':(80|443)($|[[:space:]])'; then
+  echo
+  echo "!!  Something still listens on port 80/443:"
+  ss -tlnp 2>/dev/null | grep -E ':(80|443)($|[[:space:]])' || true
+  echo "!!  Stop it and re-run. (Usually a host web server, or another"
+  echo "!!  compose project: 'docker compose -p <name> down'.)"
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Firewall — Caddy needs 80 + 443 reachable for the ACME challenge
 # ---------------------------------------------------------------------------
 if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
   ufw allow 80/tcp  || true
@@ -66,7 +95,7 @@ if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
 fi
 
 # ---------------------------------------------------------------------------
-# 3. .env — generate on first run, keep secrets on re-runs
+# 4. .env — generate on first run, keep secrets on re-runs
 # ---------------------------------------------------------------------------
 rand() { openssl rand -hex 32; }
 kv()   { grep -E "^$1=" .env 2>/dev/null | head -1 | cut -d= -f2- || true; }
@@ -86,7 +115,7 @@ ADMIN_HOST=${ADMIN_HOST}
 MINI_APP_URL=https://${PUBLIC_HOST}
 ADMIN_PANEL_URL=https://${ADMIN_HOST}
 CORS_ORIGINS=https://${PUBLIC_HOST},https://${ADMIN_HOST},https://t.me
-CADDY_ACME_EMAIL=admin@${PUBLIC_HOST}
+CADDY_ACME_EMAIL=${CADDY_ACME_EMAIL:-admin@${PUBLIC_HOST}}
 
 DATABASE_URL=postgresql://prioritizz:${PG_PW}@postgres:5432/prioritizz?schema=public
 POSTGRES_PASSWORD=${PG_PW}
@@ -99,14 +128,12 @@ JWT_ACCESS_TTL=900
 JWT_REFRESH_TTL=2592000
 INITDATA_MAX_AGE_SEC=86400
 
-# --- Telegram: fill these in ---------------------------------------------
-TELEGRAM_BOT_TOKEN=__PUT_BOTFATHER_TOKEN_HERE__
-TELEGRAM_BOT_USERNAME=prioritizz_bot
-TELEGRAM_WEBHOOK_SECRET=$(rand)
-TELEGRAM_LOGIN_CLIENT_ID=__PUT_LOGIN_WIDGET_CLIENT_ID_HERE__
-TELEGRAM_LOGIN_SECRET=__PUT_LOGIN_WIDGET_SECRET_HERE__
-ADMIN_TELEGRAM_ALLOWLIST=@kl1mov1ch
-# -----------------------------------------------------------------------
+TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-__PUT_BOTFATHER_TOKEN_HERE__}
+TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-prioritizz_bot}
+TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET:-$(rand)}
+TELEGRAM_LOGIN_CLIENT_ID=${TELEGRAM_LOGIN_CLIENT_ID:-__PUT_LOGIN_WIDGET_CLIENT_ID_HERE__}
+TELEGRAM_LOGIN_SECRET=${TELEGRAM_LOGIN_SECRET:-__PUT_LOGIN_WIDGET_SECRET_HERE__}
+ADMIN_TELEGRAM_ALLOWLIST=${ADMIN_TELEGRAM_ALLOWLIST:-@kl1mov1ch}
 
 PLATFORM_CURRENCY=XTR
 DEFAULT_COMMISSION_BPS=1000
@@ -129,7 +156,7 @@ LOG_LEVEL=info
 LOG_PRETTY=false
 
 VITE_API_BASE_URL=/api/v1
-VITE_TELEGRAM_BOT_USERNAME=prioritizz_bot
+VITE_TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-prioritizz_bot}
 EOF
   chmod 600 .env
 elif [ -n "$HOST_OVERRIDE" ]; then
@@ -150,13 +177,13 @@ fi
 BOT_TOKEN="$(kv TELEGRAM_BOT_TOKEN)"
 if [ -z "$BOT_TOKEN" ] || echo "$BOT_TOKEN" | grep -q PUT_; then
   echo
-  echo "!!  Edit .env and set TELEGRAM_BOT_TOKEN / TELEGRAM_LOGIN_* , then re-run this script."
-  echo "!!  (.env is at $PWD/.env)"
+  echo "!!  TELEGRAM_BOT_TOKEN / TELEGRAM_LOGIN_* are not set."
+  echo "!!  Edit $PWD/.env (or re-run with them as env vars), then run this again."
   exit 1
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Build + start
+# 5. Build
 # ---------------------------------------------------------------------------
 echo "==> building images one at a time (first run ~10-20 min on a slow link)"
 # Sequential, not parallel: three concurrent pnpm installs saturate a thin
@@ -167,14 +194,32 @@ for svc in migrate bot webbuild; do
   n=0
   until $COMPOSE build "$svc"; do
     n=$((n + 1))
-    [ "$n" -ge 3 ] && { echo "!! $svc failed to build after $n attempts"; exit 1; }
-    echo "   $svc build hiccup (network?), retry $n/3 in 10s..."
-    sleep 10
+    [ "$n" -ge 4 ] && { echo "!! $svc failed to build after $n attempts"; exit 1; }
+    echo "   $svc build hiccup (network?), retry $n/4 in 15s..."
+    sleep 15
   done
 done
 
+# ---------------------------------------------------------------------------
+# 6. Pull base images + start
+# ---------------------------------------------------------------------------
+echo "==> pulling base images"
+n=0
+until $COMPOSE pull postgres redis minio createbuckets caddy; do
+  n=$((n + 1))
+  [ "$n" -ge 6 ] && { echo "!! base image pull failed after $n attempts"; exit 1; }
+  echo "   pull hiccup, retry $n/6 in 15s..."
+  sleep 15
+done
+
 echo "==> starting stack"
-$COMPOSE up -d
+n=0
+until $COMPOSE up -d; do
+  n=$((n + 1))
+  [ "$n" -ge 5 ] && { echo "!! 'compose up' failed after $n attempts"; $COMPOSE ps; exit 1; }
+  echo "   up hiccup, retry $n/5 in 15s..."
+  sleep 15
+done
 
 echo "==> waiting for the API"
 for i in $(seq 1 60); do
@@ -192,7 +237,7 @@ for i in $(seq 1 40); do
 done
 
 # ---------------------------------------------------------------------------
-# 5. Point the bot's menu button at the Mini App
+# 7. Point the bot's menu button at the Mini App
 # ---------------------------------------------------------------------------
 curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setChatMenuButton" \
   -H 'content-type: application/json' \
@@ -208,14 +253,15 @@ cat <<EOF
   Admin panel     : https://${ADMIN_HOST}
   API             : https://${PUBLIC_HOST}/api/v1   (Swagger disabled in prod)
 
-  In Telegram: open @prioritizz_bot and tap the menu button, or send /start.
-  Admin Login Widget: in BotFather run /setdomain -> @prioritizz_bot ->
+  In Telegram: open @${TELEGRAM_BOT_USERNAME:-prioritizz_bot} and tap the menu
+  button, or send /start.
+  Admin Login Widget: in BotFather run /setdomain -> your bot ->
     ${ADMIN_HOST}
 
   Manage:  cd $PWD
     docker compose -f docker-compose.prod.yml ps
     docker compose -f docker-compose.prod.yml logs -f api bot caddy
     docker compose -f docker-compose.prod.yml restart api
-  Update:  re-extract the tarball here, then:  bash infra/deploy/deploy.sh
+  Update:  git pull && bash infra/deploy/deploy.sh
 =============================================================================
 EOF
