@@ -23,5 +23,12 @@ prisma/migrations/dev.db*
 playwright-report/
 test-results/
 .vite/
-prioritizz-deploy.tar.gz
-prioritizz-src.tar.gz
+dist-tsc/
+
+# build artifacts / local scratch — never commit
+*.tar.gz
+*.tgz
+*.bak
+*.bak.*
+*.orig
+scratchpad/
