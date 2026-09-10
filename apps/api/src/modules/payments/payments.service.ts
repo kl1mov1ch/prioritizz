@@ -158,8 +158,9 @@ export class PaymentsService {
     description: string;
     stars: number;
   }): Promise<string> {
+    const root = this.env.TELEGRAM_API_ROOT?.replace(/\/+$/, '') ?? 'https://api.telegram.org';
     const res = await fetch(
-      `https://api.telegram.org/bot${this.env.TELEGRAM_BOT_TOKEN}/createInvoiceLink`,
+      `${root}/bot${this.env.TELEGRAM_BOT_TOKEN}/createInvoiceLink`,
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

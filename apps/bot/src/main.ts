@@ -16,7 +16,13 @@ loadDotenv(__dirname);
  */
 async function main() {
   const env = loadEnv();
-  const bot = new Telegraf(env.TELEGRAM_BOT_TOKEN);
+
+  // Some hosts (e.g. RU datacenters) block api.telegram.org outright. Point the
+  // Bot API at a relay (Cloudflare Worker etc.) via TELEGRAM_API_ROOT when so.
+  const apiRoot = env.TELEGRAM_API_ROOT?.replace(/\/+$/, '');
+  const bot = new Telegraf(env.TELEGRAM_BOT_TOKEN, apiRoot ? { telegram: { apiRoot } } : undefined);
+  if (apiRoot) console.log(`Bot API relay: ${apiRoot}`);
+
   const connection = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
 
   // Telegram only accepts https for web_app buttons, so a localhost dev URL
@@ -51,11 +57,17 @@ async function main() {
     ctx.reply('/start — открыть Mini App\n/id — показать ваш Telegram ID\n/help — эта справка'),
   );
 
-  await bot.telegram.setMyCommands([
-    { command: 'start', description: 'Открыть Prioritizz' },
-    { command: 'id', description: 'Показать мой Telegram ID' },
-    { command: 'help', description: 'Справка' },
-  ]);
+  // Best-effort: a blocked/slow api.telegram.org must not crash-loop the process
+  // (the queue workers below still matter). It retries on the next restart.
+  try {
+    await bot.telegram.setMyCommands([
+      { command: 'start', description: 'Открыть Prioritizz' },
+      { command: 'id', description: 'Показать мой Telegram ID' },
+      { command: 'help', description: 'Справка' },
+    ]);
+  } catch (err) {
+    console.error(`setMyCommands failed (Telegram unreachable?): ${(err as Error).message}`);
+  }
 
   new Worker(
     QUEUES.NOTIFICATIONS,
@@ -80,10 +92,29 @@ async function main() {
   process.once('SIGTERM', () => bot.stop('SIGTERM'));
 
   // launch() only resolves once polling stops, so announce readiness first.
-  const me = await bot.telegram.getMe();
-  // eslint-disable-next-line no-console
-  console.log(`Bot @${me.username} polling (mini app: ${env.MINI_APP_URL})`);
-  await bot.launch();
+  try {
+    const me = await bot.telegram.getMe();
+    // eslint-disable-next-line no-console
+    console.log(`Bot @${me.username} polling (mini app: ${env.MINI_APP_URL})`);
+  } catch (err) {
+    console.error(`getMe failed (Telegram unreachable?): ${(err as Error).message}`);
+  }
+
+  // If Telegram is unreachable, launch() rejects immediately. Keep the process
+  // (and its queue workers) alive and retry polling on a slow loop rather than
+  // exiting into a crash-loop.
+  const launchWithRetry = async () => {
+    for (;;) {
+      try {
+        await bot.launch();
+        return; // resolves only on a clean stop
+      } catch (err) {
+        console.error(`bot.launch failed, retrying in 60s: ${(err as Error).message}`);
+        await new Promise((r) => setTimeout(r, 60_000));
+      }
+    }
+  };
+  void launchWithRetry();
 }
 
 void main();

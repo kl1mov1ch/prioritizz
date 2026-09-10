@@ -62,6 +62,11 @@ export const serverEnvSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().min(10),
   TELEGRAM_BOT_USERNAME: z.string().default('PrioritizzBot'),
   TELEGRAM_WEBHOOK_SECRET: z.string().min(8).default('dev_webhook_secret_change_me'),
+  /** Relay base URL for the Bot API when api.telegram.org is blocked (e.g. a
+   *  Cloudflare Worker proxy). Empty → talk to Telegram directly. */
+  TELEGRAM_API_ROOT: z.string().url().optional(),
+  /** Optional outbound proxy for Bot API calls: socks5://host:port or http://host:port. */
+  TELEGRAM_PROXY: z.string().optional(),
   MINI_APP_URL: z.string().url().default('http://localhost:5173'),
   ADMIN_PANEL_URL: z.string().url().default('http://localhost:5174'),
   /** BotFather → Login Widget. Client id equals the bot id; secret powers OIDC. */

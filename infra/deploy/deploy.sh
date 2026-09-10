@@ -237,12 +237,19 @@ for i in $(seq 1 40); do
 done
 
 # ---------------------------------------------------------------------------
-# 7. Point the bot's menu button at the Mini App
+# 7. Point the bot's menu button at the Mini App (best-effort — some hosts
+#    block api.telegram.org; set it from BotFather on your phone if this skips)
 # ---------------------------------------------------------------------------
-curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setChatMenuButton" \
+TG_ROOT="$(kv TELEGRAM_API_ROOT)"; TG_ROOT="${TG_ROOT:-https://api.telegram.org}"
+if curl -s --max-time 15 -X POST "${TG_ROOT}/bot${BOT_TOKEN}/setChatMenuButton" \
   -H 'content-type: application/json' \
-  -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"Prioritizz\",\"web_app\":{\"url\":\"https://${PUBLIC_HOST}\"}}}" >/dev/null \
-  && echo "==> bot menu button -> https://${PUBLIC_HOST}"
+  -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"Prioritizz\",\"web_app\":{\"url\":\"https://${PUBLIC_HOST}\"}}}" >/dev/null 2>&1; then
+  echo "==> bot menu button -> https://${PUBLIC_HOST}"
+else
+  echo "==> could not reach the Telegram Bot API to set the menu button"
+  echo "    (host may block api.telegram.org — set TELEGRAM_API_ROOT to a relay,"
+  echo "     or open @BotFather on your phone: Bot Settings -> Menu Button)"
+fi
 
 cat <<EOF
 

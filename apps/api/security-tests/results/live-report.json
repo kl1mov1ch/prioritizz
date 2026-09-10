@@ -1,0 +1,257 @@
+{
+  "target": "http://localhost:3000/api",
+  "when": "2026-09-10T20:11:20.506Z",
+  "totals": {
+    "checks": 30,
+    "review": 1,
+    "ok": 29
+  },
+  "results": [
+    {
+      "name": "no-auth /v1/me",
+      "severity": "CRITICAL",
+      "expected": [
+        401
+      ],
+      "got": 401,
+      "verdict": "OK",
+      "note": "body: {\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    },
+    {
+      "name": "no-auth /v1/me/wallet",
+      "severity": "CRITICAL",
+      "expected": [
+        401
+      ],
+      "got": 401,
+      "verdict": "OK",
+      "note": "body: {\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    },
+    {
+      "name": "no-auth /v1/me/notifications",
+      "severity": "CRITICAL",
+      "expected": [
+        401
+      ],
+      "got": 401,
+      "verdict": "OK",
+      "note": "body: {\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    },
+    {
+      "name": "no-auth /v1/orders",
+      "severity": "CRITICAL",
+      "expected": [
+        401
+      ],
+      "got": 401,
+      "verdict": "OK",
+      "note": "body: {\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    },
+    {
+      "name": "no-auth /v1/me/payouts",
+      "severity": "CRITICAL",
+      "expected": [
+        401
+      ],
+      "got": 401,
+      "verdict": "OK",
+      "note": "body: {\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    },
+    {
+      "name": "no-auth /v1/auth/sessions",
+      "severity": "CRITICAL",
+      "expected": [
+        401
+      ],
+      "got": 401,
+      "verdict": "OK",
+      "note": "body: {\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    },
+    {
+      "name": "no-auth /v1/admin/dashboard",
+      "severity": "CRITICAL",
+      "expected": [
+        401
+      ],
+      "got": 401,
+      "verdict": "OK",
+      "note": "body: {\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    },
+    {
+      "name": "no-auth /v1/admin/users",
+      "severity": "CRITICAL",
+      "expected": [
+        401
+      ],
+      "got": 401,
+      "verdict": "OK",
+      "note": "body: {\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    },
+    {
+      "name": "no-auth /v1/admin/audit-logs",
+      "severity": "CRITICAL",
+      "expected": [
+        401
+      ],
+      "got": 401,
+      "verdict": "OK",
+      "note": "body: {\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    },
+    {
+      "name": "no-auth /v1/admin/feature-flags",
+      "severity": "CRITICAL",
+      "expected": [
+        401
+      ],
+      "got": 401,
+      "verdict": "OK",
+      "note": "body: {\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    },
+    {
+      "name": "no-auth /v1/admin/payouts",
+      "severity": "CRITICAL",
+      "expected": [
+        401
+      ],
+      "got": 401,
+      "verdict": "OK",
+      "note": "body: {\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    },
+    {
+      "name": "no-auth /v1/admin/disputes",
+      "severity": "CRITICAL",
+      "expected": [
+        401
+      ],
+      "got": 401,
+      "verdict": "OK",
+      "note": "body: {\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    },
+    {
+      "name": "forged token \"Bearer ...\"",
+      "severity": "HIGH",
+      "got": 401,
+      "verdict": "OK",
+      "note": "{\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    },
+    {
+      "name": "forged token \"Bearer null...\"",
+      "severity": "HIGH",
+      "got": 401,
+      "verdict": "OK",
+      "note": "{\"code\":\"AUTH_TOKEN_EXPIRED\",\"message\":\"Access token invalid or expired\"}"
+    },
+    {
+      "name": "forged token \"Bearer eyJhbGciOiJub25lI...\"",
+      "severity": "HIGH",
+      "got": 401,
+      "verdict": "OK",
+      "note": "{\"code\":\"AUTH_TOKEN_EXPIRED\",\"message\":\"Access token invalid or expired\"}"
+    },
+    {
+      "name": "forged token \"Bearer ../../etc/passwd...\"",
+      "severity": "HIGH",
+      "got": 401,
+      "verdict": "OK",
+      "note": "{\"code\":\"AUTH_TOKEN_EXPIRED\",\"message\":\"Access token invalid or expired\"}"
+    },
+    {
+      "name": "forged token \"Basic YWRtaW46YWRtaW4=...\"",
+      "severity": "HIGH",
+      "got": 401,
+      "verdict": "OK",
+      "note": "{\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    },
+    {
+      "name": "malformed JSON body",
+      "severity": "MEDIUM",
+      "got": 400,
+      "verdict": "OK",
+      "note": "{\"code\":\"INTERNAL\",\"message\":\"Expected property name or '}' in JSON at position 1 (line 1 column 2)\"}"
+    },
+    {
+      "name": "type-confused initData",
+      "severity": "MEDIUM",
+      "got": 422,
+      "verdict": "OK",
+      "note": "{\"code\":\"VALIDATION_FAILED\",\"message\":\"Request validation failed\",\"details\":{\"formErrors\":[],\"fieldErrors\":{\"initData\":[\"Expected string, received number\"]}}}"
+    },
+    {
+      "name": "huge refreshToken",
+      "severity": "LOW",
+      "got": 401,
+      "verdict": "OK",
+      "note": "{\"code\":\"AUTH_SESSION_REVOKED\",\"message\":\"Refresh token invalid\"}"
+    },
+    {
+      "name": "payment webhook secret=none",
+      "severity": "CRITICAL",
+      "got": 400,
+      "verdict": "OK",
+      "note": "{\"code\":\"PAYMENT_WEBHOOK_SIGNATURE_INVALID\",\"message\":\"bad secret\"}"
+    },
+    {
+      "name": "payment webhook secret=wrong",
+      "severity": "CRITICAL",
+      "got": 400,
+      "verdict": "OK",
+      "note": "{\"code\":\"PAYMENT_WEBHOOK_SIGNATURE_INVALID\",\"message\":\"bad secret\"}"
+    },
+    {
+      "name": "payment webhook secret=dev_webhook_secret_change_me",
+      "severity": "CRITICAL",
+      "got": 400,
+      "verdict": "OK",
+      "note": "{\"code\":\"PAYMENT_WEBHOOK_SIGNATURE_INVALID\",\"message\":\"bad secret\"}"
+    },
+    {
+      "name": "throttler bypass via XFF rotation (200 req)",
+      "severity": "MEDIUM",
+      "got": "200 ok / 0 x429",
+      "verdict": "REVIEW",
+      "note": "if 0 x429, the per-IP limiter trusts a spoofable client header"
+    },
+    {
+      "name": "throttler active on a single IP (200 req / <60s)",
+      "severity": "INFO",
+      "got": "81 x429",
+      "verdict": "OK",
+      "note": "baseline: limit is 120/60s"
+    },
+    {
+      "name": "CORS reflects arbitrary Origin",
+      "severity": "MEDIUM",
+      "got": "(none)",
+      "verdict": "OK",
+      "note": "with credentials:true a reflected/`*` ACAO is exploitable"
+    },
+    {
+      "name": "swagger surface /api/docs",
+      "severity": "LOW",
+      "got": 404,
+      "verdict": "OK",
+      "note": "exposed only when NODE_ENV!=production"
+    },
+    {
+      "name": "swagger surface /api/docs-json",
+      "severity": "LOW",
+      "got": 404,
+      "verdict": "OK",
+      "note": "exposed only when NODE_ENV!=production"
+    },
+    {
+      "name": "swagger surface /api",
+      "severity": "LOW",
+      "got": 404,
+      "verdict": "OK",
+      "note": "exposed only when NODE_ENV!=production"
+    },
+    {
+      "name": "GET payment intent w/o auth",
+      "severity": "HIGH",
+      "got": 401,
+      "verdict": "OK",
+      "note": "{\"code\":\"AUTH_TOKEN_INVALID\",\"message\":\"Missing bearer token\"}"
+    }
+  ]
+}

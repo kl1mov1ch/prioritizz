@@ -32,7 +32,8 @@ export class UsersService {
       where: { id: userId },
       select: { telegramId: true },
     });
-    const api = `https://api.telegram.org/bot${this.env.TELEGRAM_BOT_TOKEN}`;
+    const root = this.env.TELEGRAM_API_ROOT?.replace(/\/+$/, '') ?? 'https://api.telegram.org';
+    const api = `${root}/bot${this.env.TELEGRAM_BOT_TOKEN}`;
 
     const photos = await fetch(
       `${api}/getUserProfilePhotos?user_id=${user.telegramId}&limit=1`,
@@ -53,7 +54,7 @@ export class UsersService {
     if (!file.ok) throw new AppException(ERROR_CODES.INTERNAL, 'Telegram getFile failed');
 
     const download = await fetch(
-      `https://api.telegram.org/file/bot${this.env.TELEGRAM_BOT_TOKEN}/${file.result.file_path}`,
+      `${root}/file/bot${this.env.TELEGRAM_BOT_TOKEN}/${file.result.file_path}`,
     );
     const bytes = Buffer.from(new Uint8Array(await download.arrayBuffer()));
 
