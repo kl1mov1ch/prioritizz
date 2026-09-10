@@ -27,6 +27,11 @@ COPY --from=build /app/packages ./packages
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/package.json ./apps/api/package.json
+# pnpm's strict (non-hoisted) node_modules keeps @prioritizz/api's own deps
+# (reflect-metadata, @nestjs/*, bullmq, ...) as symlinks under its own
+# node_modules, not the root one — without this, node can't resolve them
+# at runtime (MODULE_NOT_FOUND) even though the root node_modules is copied.
+COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --retries=10 \
   CMD wget -qO- http://localhost:3000/api/healthz || exit 1
